@@ -102,13 +102,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_FRONTEND = pathlib.Path.cwd() / "frontend"
+_FRONTEND = pathlib.Path(__file__).resolve().parent.parent / "frontend"
 if _FRONTEND.exists():
     app.mount("/static", StaticFiles(directory=str(_FRONTEND)), name="static")
 
 @app.get("/", include_in_schema=False)
 async def index():
-    return FileResponse(str(_FRONTEND / "index.html"))
+    index_file = _FRONTEND / "index.html"
+    if not index_file.exists():
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(f"Frontend not found at {index_file}", status_code=404)
+    return FileResponse(str(index_file))
 
 
 # ---------------------------------------------------------------------------
