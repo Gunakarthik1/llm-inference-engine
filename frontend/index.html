@@ -482,7 +482,7 @@
       </div>
       <div class="term-line">
         <span class="term-prompt">#</span>
-        <span class="term-text system">Connecting to ws://localhost:8001/ws/generate …</span>
+        <span class="term-text system">Connecting to /ws/generate …</span>
       </div>
     </div>
 
@@ -593,7 +593,7 @@
     </div>
 
     <div class="panel-footer">
-      <a class="prom-link" href="http://localhost:8001/metrics" target="_blank">View /metrics →</a>
+      <a class="prom-link" href="/metrics" target="_blank">View /metrics →</a>
       <span class="uptime-text" id="uptime-text">uptime —</span>
     </div>
 
@@ -604,8 +604,8 @@
 /* =========================================================
    Configuration
    ========================================================= */
-const API_BASE  = "http://localhost:8001";
-const WS_BASE   = "ws://localhost:8001";
+const API_BASE  = "";
+const WS_BASE   = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
 const POLL_MS   = 2000;   // metrics polling interval
 const CHART_W   = 400;
 const CHART_H   = 80;
@@ -790,7 +790,7 @@ function sendPrompt(prompt) {
   ws.onerror = () => {
     setDot("error");
     removeCursor();
-    addTermLine("!", "WebSocket error — is the backend running on port 8001?", "error");
+    addTermLine("!", "WebSocket error — is the backend running?", "error");
     finishGeneration();
   };
 
@@ -1083,7 +1083,7 @@ async function pollMetrics() {
     addTermLine("#", "Backend connected ✓", "system");
     setDot("connected");
   } catch {
-    addTermLine("!", "Cannot reach backend — start the engine on port 8001", "error");
+    addTermLine("!", "Cannot reach backend — ensure the engine is running", "error");
     setDot("error");
   }
   pollMetrics();

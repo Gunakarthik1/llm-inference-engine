@@ -22,10 +22,13 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
+import pathlib
+
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from engine.inference import InferenceEngine
 from engine.models import (
@@ -98,6 +101,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_FRONTEND = pathlib.Path(__file__).parent.parent / "frontend"
+if _FRONTEND.exists():
+    app.mount("/static", StaticFiles(directory=str(_FRONTEND)), name="static")
+
+@app.get("/", include_in_schema=False)
+async def index():
+    return FileResponse(str(_FRONTEND / "index.html"))
 
 
 # ---------------------------------------------------------------------------
