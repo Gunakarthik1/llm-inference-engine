@@ -74,6 +74,10 @@ class MetricsSummary(BaseModel):
     pages_allocated: int
     pages_free: int
     active_sessions: int
+    queue_depth: int = 0
+    avg_batch_size: float = 0.0
+    gpu_utilization: float = 0.0
+    batch_efficiency: float = 0.0
     uptime_seconds: float
 
 

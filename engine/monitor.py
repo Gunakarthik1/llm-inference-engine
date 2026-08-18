@@ -232,6 +232,14 @@ class SystemMonitor:
         engine_stats = self._engine.get_stats() if self._engine else {}
         sched_status = self._scheduler.get_status() if self._scheduler else {}
 
+        active = sched_status.get("active_sessions", 0)
+        max_batch = getattr(self._scheduler, "max_batch_size", 8) if self._scheduler else 8
+        avg_batch = sched_status.get("avg_batch_size", 0.0)
+        # GPU utilization: proxy from active sessions vs max capacity
+        gpu_util = min(100.0, (active / max(max_batch, 1)) * 100.0)
+        # Batch efficiency: how well we're filling batches
+        batch_eff = min(100.0, (avg_batch / max(max_batch, 1)) * 100.0) if avg_batch else 0.0
+
         return {
             "tokens_per_sec": round(self.tokens_per_sec, 2),
             "ttft_p50_ms": round(self.ttft_p50, 1),
@@ -243,9 +251,11 @@ class SystemMonitor:
             "vram_total_mb": engine_stats.get("vram_total_mb", 80000),
             "pages_allocated": engine_stats.get("pages_allocated", 0),
             "pages_free": engine_stats.get("pages_free", 0),
-            "active_sessions": sched_status.get("active_sessions", 0),
+            "active_sessions": active,
             "queue_depth": sched_status.get("queue_depth", 0),
-            "avg_batch_size": sched_status.get("avg_batch_size", 0.0),
+            "avg_batch_size": avg_batch,
+            "gpu_utilization": round(gpu_util, 1),
+            "batch_efficiency": round(batch_eff, 1),
             "uptime_seconds": round(self.uptime_seconds, 1),
         }
 

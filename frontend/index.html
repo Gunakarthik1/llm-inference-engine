@@ -3,1287 +3,1400 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inference Engine</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <title>LLM Inference Engine</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --paper:        #FAF9F6;
-      --ink:          #18181B;
-      --stone:        #71717A;
-      --border:       rgba(24,24,27,0.10);
-      --accent:       #0891B2;
-      --accent-light: rgba(8,145,178,0.08);
-      --terminal-bg:  #0F0F11;
-      --terminal-border: rgba(255,255,255,0.06);
-      --font-serif:   'Instrument Serif', Georgia, serif;
-      --font-sans:    'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', 'Fira Code', Menlo, monospace;
+      --bg:        #000000;
+      --bg2:       #0a0a0a;
+      --bg3:       #111111;
+      --bg4:       #1a1a1a;
+      --border:    rgba(255,255,255,0.08);
+      --green:     #00ff88;
+      --green-dim: rgba(0,255,136,0.15);
+      --blue:      #3b82f6;
+      --blue-dim:  rgba(59,130,246,0.15);
+      --yellow:    #f59e0b;
+      --red:       #ef4444;
+      --text:      rgba(255,255,255,0.9);
+      --text2:     rgba(255,255,255,0.55);
+      --text3:     rgba(255,255,255,0.3);
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', system-ui, sans-serif;
     }
 
     html, body {
-      height: 100%;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: var(--font-sans);
-      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
+
+    /* ── Scrollbars ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
     /* ── Layout ── */
     .layout {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
     }
 
-    /* Header */
+    /* ── Header ── */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 28px 16px;
+      padding: 14px 24px;
       border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      background: var(--paper);
+      background: var(--bg2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .header-left { display: flex; flex-direction: column; gap: 3px; }
-    .header h1 {
-      font-family: var(--font-serif);
-      font-size: 22px;
-      font-weight: 400;
-      color: var(--ink);
-      letter-spacing: -0.01em;
-      line-height: 1.2;
-    }
-    .header-tagline {
-      font-size: 11.5px;
-      color: var(--stone);
-      font-family: var(--font-sans);
-      font-weight: 400;
-      letter-spacing: 0.01em;
-    }
-    .header-right {
+    .header-brand {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .ws-badge {
+    .header-logo {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12px;
+      color: #000;
+    }
+    .header-title {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: var(--mono);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ws-status {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 11px;
+      padding: 4px 10px;
       border-radius: 20px;
       border: 1px solid var(--border);
-      font-size: 11.5px;
-      font-family: var(--font-sans);
-      font-weight: 500;
-      color: var(--stone);
-      background: transparent;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text3);
+      background: var(--bg3);
       transition: all 0.3s;
     }
-    .ws-badge.connected {
-      border-color: rgba(8,145,178,0.25);
-      color: var(--accent);
-      background: var(--accent-light);
-    }
-    .ws-badge.error {
-      border-color: rgba(239,68,68,0.25);
-      color: #EF4444;
-      background: rgba(239,68,68,0.06);
-    }
+    .ws-status.connected { border-color: rgba(0,255,136,0.3); color: var(--green); background: var(--green-dim); }
+    .ws-status.error { border-color: rgba(239,68,68,0.3); color: var(--red); background: rgba(239,68,68,0.1); }
     .ws-dot {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       border-radius: 50%;
       background: currentColor;
       flex-shrink: 0;
     }
-    .ws-badge.connected .ws-dot {
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    .ws-status.connected .ws-dot { animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-    /* Main two-panel body */
-    .body-panels {
-      display: flex;
-      flex: 1;
+    /* ── Top metrics row ── */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .metric-card {
+      padding: 16px 20px;
+      border-right: 1px solid var(--border);
+      position: relative;
       overflow: hidden;
     }
+    .metric-card:last-child { border-right: none; }
+    .metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+    .metric-value {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      transition: color 0.3s;
+    }
+    .metric-value .unit {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text3);
+      margin-left: 2px;
+    }
+    .metric-bar-wrap {
+      margin-top: 8px;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .metric-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.6s ease;
+      background: var(--green);
+    }
+    .metric-card.blue .metric-value { color: var(--blue); }
+    .metric-card.blue .metric-bar { background: var(--blue); }
+    .metric-card.yellow .metric-value { color: var(--yellow); }
+    .metric-card.yellow .metric-bar { background: var(--yellow); }
 
-    /* ── LEFT — Terminal Panel ── */
-    .left-pane {
-      flex: 0 0 60%;
+    /* animated glow on active */
+    .metric-card.active::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0,255,136,0.04), transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ── Main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr 380px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Panel base ── */
+    .panel {
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      background: var(--terminal-bg);
-      border-right: 1px solid rgba(255,255,255,0.05);
       overflow: hidden;
     }
-
-    .terminal-header {
+    .panel:last-child { border-right: none; }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 20px 10px;
-      border-bottom: 1px solid var(--terminal-border);
       flex-shrink: 0;
     }
-    .terminal-dots { display: flex; gap: 6px; }
-    .t-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-    .t-dot-r { background: #FF5F56; }
-    .t-dot-y { background: #FFBD2E; }
-    .t-dot-g { background: #27C93F; }
-    .terminal-title {
-      font-family: var(--font-mono);
+    .panel-title {
+      font-family: var(--mono);
       font-size: 11px;
-      color: rgba(255,255,255,0.25);
-      letter-spacing: 0.04em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text3);
     }
-    .queue-pill {
-      font-family: var(--font-mono);
+    .panel-badge {
+      font-family: var(--mono);
       font-size: 10px;
-      color: rgba(255,255,255,0.3);
-      background: rgba(255,255,255,0.06);
+      padding: 2px 7px;
       border-radius: 10px;
-      padding: 2px 8px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .queue-pill-count {
-      color: var(--accent);
-      font-weight: 500;
+      background: var(--bg4);
+      border: 1px solid var(--border);
+      color: var(--text3);
     }
 
-    /* Terminal output area */
-    .terminal-output {
+    /* ── LEFT: Generation Terminal ── */
+    .gen-panel {
+      background: var(--bg2);
+    }
+    .gen-panel .panel-content {
       flex: 1;
       overflow-y: auto;
-      padding: 20px 22px 12px;
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      line-height: 1.75;
-      scroll-behavior: smooth;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .terminal-output::-webkit-scrollbar { width: 4px; }
-    .terminal-output::-webkit-scrollbar-track { background: transparent; }
-    .terminal-output::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
-    .term-empty {
-      color: rgba(255,255,255,0.18);
-      font-family: var(--font-mono);
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text3);
+    }
+
+    .prompt-textarea {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--green);
+      font-family: var(--mono);
       font-size: 12px;
-      padding: 8px 0;
-      font-style: italic;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 80px;
+      max-height: 160px;
+      caret-color: var(--green);
+      outline: none;
+      transition: border-color 0.2s;
     }
+    .prompt-textarea::placeholder { color: var(--text3); font-style: italic; }
+    .prompt-textarea:focus { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.02); }
 
-    .session-block {
-      margin-bottom: 24px;
-    }
-    .session-meta {
+    .slider-row {
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 6px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      gap: 10px;
     }
-    .session-id-label {
-      font-size: 10px;
-      color: rgba(255,255,255,0.22);
-      font-family: var(--font-mono);
-      letter-spacing: 0.06em;
+    .slider-wrap { flex: 1; }
+    .slider-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      min-width: 32px;
+      text-align: right;
     }
-    .session-ttft-badge {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: var(--accent);
-      opacity: 0;
-      transition: opacity 0.3s;
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--bg4);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
     }
-    .session-ttft-badge.visible { opacity: 1; }
-    .session-total-badge {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: rgba(255,255,255,0.28);
-      margin-left: auto;
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0,255,136,0.4);
     }
-    .session-prompt-line {
-      color: rgba(255,255,255,0.45);
-      margin-bottom: 6px;
-      font-size: 12px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .session-prompt-line::before {
-      content: '> ';
-      color: rgba(255,255,255,0.2);
-    }
-    .session-response {
-      color: var(--accent);
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.8;
-      transition: color 0.5s;
-    }
-    .session-response.complete {
-      color: rgba(255,255,255,0.55);
+    input[type="range"]::-moz-range-thumb {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--green);
+      cursor: pointer;
+      border: none;
     }
 
-    /* Blinking cursor */
-    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    .priority-tabs {
+      display: flex;
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+      border: 1px solid var(--border);
+    }
+    .prio-tab {
+      flex: 1;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text3);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .prio-tab:hover:not(.active) { color: var(--text2); }
+    .prio-tab.active[data-p="low"]    { background: var(--bg4); color: var(--text2); }
+    .prio-tab.active[data-p="normal"] { background: var(--blue-dim); color: var(--blue); }
+    .prio-tab.active[data-p="high"]   { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    .generate-btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .generate-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    }
+    .generate-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* Terminal output */
+    .terminal-box {
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 120px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--green);
+      position: relative;
+    }
+    .terminal-empty {
+      color: var(--text3);
+      font-style: italic;
+    }
+    .terminal-prompt-line {
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+    .terminal-prompt-line::before { content: '> '; color: rgba(255,255,255,0.15); }
+    .terminal-response { white-space: pre-wrap; word-break: break-word; }
+    .terminal-response.done { color: rgba(0,255,136,0.7); }
+    .terminal-stats {
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text3);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 6px;
+    }
+    .terminal-ttft {
+      font-size: 10px;
+      color: var(--blue);
+      margin-bottom: 2px;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
     .cursor {
       display: inline-block;
-      width: 6px;
-      height: 13px;
-      background: var(--accent);
+      width: 7px; height: 13px;
+      background: var(--green);
       animation: blink 1s step-end infinite;
       vertical-align: text-bottom;
       margin-left: 1px;
       border-radius: 1px;
     }
 
-    /* ── Input area ── */
-    .input-area {
-      border-top: 1px solid var(--terminal-border);
-      padding: 16px 20px;
-      flex-shrink: 0;
-      background: rgba(255,255,255,0.015);
+    /* ── CENTER: KV Cache Grid ── */
+    .cache-panel {
+      background: var(--bg);
+      align-items: center;
     }
-    .input-top-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-    }
-    .prompt-textarea {
+    .cache-panel .panel-content {
       flex: 1;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: rgba(255,255,255,0.85);
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      line-height: 1.6;
-      resize: none;
-      min-height: 44px;
-      max-height: 120px;
-      caret-color: var(--accent);
-      transition: border-color 0.2s;
-      outline: none;
-    }
-    .prompt-textarea::placeholder {
-      color: rgba(255,255,255,0.2);
-      font-style: italic;
-    }
-    .prompt-textarea:focus {
-      border-color: rgba(8,145,178,0.4);
-      background: rgba(255,255,255,0.07);
-    }
-    .generate-btn {
-      padding: 10px 20px;
-      border-radius: 8px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-family: var(--font-sans);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      height: 44px;
-      white-space: nowrap;
-    }
-    .generate-btn:hover:not(:disabled) {
-      background: #0780a0;
-      transform: translateY(-1px);
-    }
-    .generate-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .input-bottom-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .priority-label {
-      font-size: 11px;
-      color: rgba(255,255,255,0.3);
-      font-family: var(--font-sans);
-      font-weight: 500;
-      letter-spacing: 0.03em;
-      margin-right: 2px;
-    }
-    .priority-pills { display: flex; gap: 4px; }
-    .prio-pill {
-      padding: 3px 11px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: transparent;
-      font-size: 11.5px;
-      font-family: var(--font-sans);
-      font-weight: 500;
-      color: rgba(255,255,255,0.3);
-      cursor: pointer;
-      transition: all 0.15s;
-      user-select: none;
-    }
-    .prio-pill:hover:not(.active) {
-      border-color: rgba(255,255,255,0.2);
-      color: rgba(255,255,255,0.5);
-    }
-    .prio-pill.active[data-p="high"] {
-      border-color: rgba(239,68,68,0.4);
-      background: rgba(239,68,68,0.1);
-      color: #F87171;
-    }
-    .prio-pill.active[data-p="normal"] {
-      border-color: rgba(8,145,178,0.4);
-      background: var(--accent-light);
-      color: var(--accent);
-    }
-    .prio-pill.active[data-p="low"] {
-      border-color: rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.5);
-    }
-    .max-tokens-wrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: auto;
-    }
-    .max-tokens-label {
-      font-size: 11px;
-      color: rgba(255,255,255,0.25);
-      font-family: var(--font-sans);
-    }
-    .max-tokens-input {
-      width: 64px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 6px;
-      padding: 3px 8px;
-      color: rgba(255,255,255,0.6);
-      font-family: var(--font-mono);
-      font-size: 11.5px;
-      outline: none;
-      text-align: right;
-    }
-    .max-tokens-input:focus {
-      border-color: rgba(8,145,178,0.3);
-    }
-
-    /* ── RIGHT — Metrics Panel ── */
-    .right-pane {
-      flex: 0 0 40%;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      background: var(--paper);
-      padding: 0 0 24px;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
     }
-    .right-pane::-webkit-scrollbar { width: 4px; }
-    .right-pane::-webkit-scrollbar-track { background: transparent; }
-    .right-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    /* Section title */
-    .section-title {
-      font-size: 10.5px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--stone);
-      padding: 20px 24px 10px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-title:first-child {
-      padding-top: 24px;
-    }
-
-    /* TTFT Strip */
-    .ttft-strip {
+    .kv-grid-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .kv-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      border-bottom: 1px solid var(--border);
+      grid-template-columns: repeat(8, 20px);
+      gap: 4px;
     }
-    .ttft-cell {
-      padding: 18px 24px 16px;
-      border-right: 1px solid var(--border);
+    .kv-block {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      background: var(--bg4);
+      transition: background 0.3s, box-shadow 0.3s;
     }
-    .ttft-cell:last-child { border-right: none; }
-    .ttft-cell-label {
-      font-size: 10.5px;
-      color: var(--stone);
-      font-weight: 500;
+    .kv-block.occupied {
+      background: var(--blue);
+      box-shadow: 0 0 6px rgba(59,130,246,0.4);
+    }
+    .kv-block.evicting {
+      background: var(--yellow);
+      box-shadow: 0 0 6px rgba(245,158,11,0.5);
+      animation: pulse-block 0.8s ease-in-out infinite alternate;
+    }
+    .kv-block.active {
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(0,255,136,0.5);
+      animation: pulse-block 1s ease-in-out infinite alternate;
+    }
+    @keyframes pulse-block { from{opacity:0.7} to{opacity:1} }
+    .kv-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text2);
+      text-align: center;
+    }
+    .kv-legend {
+      display: flex;
+      gap: 16px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+    }
+    .kv-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .kv-legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 2px;
+    }
+
+    /* Stats below grid */
+    .cache-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 340px;
+    }
+    .cache-stat {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .cache-stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+    .cache-stat-value {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ── RIGHT: Stress Test ── */
+    .stress-panel {
+      background: var(--bg2);
+    }
+    .stress-panel .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stress-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(239,68,68,0.4);
+      background: rgba(239,68,68,0.1);
+      color: var(--red);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      margin-bottom: 6px;
+      transition: all 0.15s;
     }
-    .ttft-cell-value {
-      font-family: var(--font-mono);
-      font-size: 22px;
-      font-weight: 500;
-      color: var(--ink);
-      line-height: 1;
-      letter-spacing: -0.02em;
+    .stress-btn:hover:not(:disabled) {
+      background: rgba(239,68,68,0.2);
+      box-shadow: 0 0 16px rgba(239,68,68,0.2);
     }
-    .ttft-cell-value .unit {
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--stone);
-      margin-left: 2px;
-    }
+    .stress-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Stat rows */
-    .stat-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      padding: 11px 24px;
-      border-bottom: 1px solid var(--border);
+    .stress-table-wrap { overflow-x: auto; }
+    .stress-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
     }
-    .stat-label {
-      font-size: 13px;
-      color: var(--stone);
-      font-weight: 400;
-    }
-    .stat-value {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--ink);
-    }
-    .stat-value.accent { color: var(--accent); }
-    .stat-value.muted  { color: var(--stone); }
-
-    /* Queue display */
-    .queue-display {
-      padding: 14px 24px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .queue-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 8px;
-    }
-    .queue-state-label {
-      font-size: 13px;
-      color: var(--stone);
-    }
-    .queue-count-val {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--ink);
-    }
-    .queue-track {
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .queue-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 2px;
-      transition: width 0.5s ease;
-      min-width: 0;
-    }
-    .queue-sub {
-      margin-top: 6px;
-      font-size: 11.5px;
-      color: var(--stone);
-    }
-    .queue-sub strong {
-      color: var(--ink);
-      font-weight: 600;
-    }
-
-    /* VRAM bar */
-    .vram-section {
-      padding: 14px 24px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .vram-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 8px;
-    }
-    .vram-label { font-size: 13px; color: var(--stone); }
-    .vram-val {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--stone);
-    }
-    .vram-track {
-      height: 5px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .vram-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 3px;
-      transition: width 0.6s ease, background 0.4s;
-    }
-
-    /* Throughput hero */
-    .tps-hero {
-      padding: 20px 24px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .tps-hero-label {
-      font-size: 10.5px;
-      font-weight: 600;
+    .stress-table th {
+      text-align: left;
+      padding: 6px 8px;
+      color: var(--text3);
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--stone);
-      margin-bottom: 6px;
-    }
-    .tps-hero-value {
-      font-family: var(--font-mono);
-      font-size: 32px;
-      font-weight: 500;
-      color: var(--ink);
-      letter-spacing: -0.03em;
-      line-height: 1;
-    }
-    .tps-hero-value .unit {
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--stone);
-      margin-left: 4px;
-    }
-
-    /* Sparkline chart */
-    .chart-section {
-      padding: 0 24px 20px;
+      letter-spacing: 0.06em;
       border-bottom: 1px solid var(--border);
+      font-weight: 600;
     }
-    .chart-section-header {
+    .stress-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+    .stress-row.pending td { color: var(--text3); }
+    .stress-row.streaming td { color: var(--blue); }
+    .stress-row.streaming td:first-child { animation: blink-row 1s ease-in-out infinite; }
+    @keyframes blink-row { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .stress-row.done td { color: var(--green); }
+    .stress-row.error td { color: var(--red); }
+
+    .stress-summary {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text2);
+      line-height: 1.8;
+    }
+    .stress-summary-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text3);
+      margin-bottom: 8px;
+    }
+    .stress-metric { display: flex; justify-content: space-between; }
+    .stress-metric-val { color: var(--green); font-weight: 600; }
+
+    /* ── Bottom chart ── */
+    .chart-section {
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 16px 24px 20px;
+      flex-shrink: 0;
+    }
+    .chart-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 14px 0 10px;
+      justify-content: space-between;
+      margin-bottom: 12px;
     }
-    .chart-header-label {
+    .chart-title {
+      font-family: var(--mono);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
-      color: var(--stone);
+      color: var(--text3);
     }
-    .chart-header-axis {
-      font-size: 10px;
-      color: var(--stone);
-      opacity: 0.6;
-    }
-    #throughput-canvas {
-      width: 100%;
-      height: 72px;
-      display: block;
-      border-radius: 6px;
-    }
-
-    /* Totals */
-    .totals-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      border-bottom: 1px solid var(--border);
-    }
-    .total-cell {
-      padding: 14px 24px;
-      border-right: 1px solid var(--border);
-    }
-    .total-cell:nth-child(even) { border-right: none; }
-    .total-cell-label {
-      font-size: 11px;
-      color: var(--stone);
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-    .total-cell-value {
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--ink);
-      letter-spacing: -0.01em;
-    }
-
-    /* Footer */
-    .metrics-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 24px 0;
-    }
-    .footer-link {
-      font-size: 11.5px;
-      color: var(--stone);
-      text-decoration: none;
-      font-family: var(--font-sans);
-      font-weight: 500;
+    .chart-live {
       display: flex;
       align-items: center;
       gap: 5px;
-      transition: color 0.15s;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--green);
     }
-    .footer-link:hover { color: var(--accent); }
-    .uptime-val {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--stone);
+    .chart-live-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+    #throughput-svg {
+      width: 100%;
+      height: 80px;
+      display: block;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 1100px) {
+      .main-grid { grid-template-columns: 1fr 1fr; }
+      .cache-panel { display: none; }
+    }
+    @media (max-width: 800px) {
+      .metrics-row { grid-template-columns: repeat(3, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+      .stress-panel { display: none; }
     }
   </style>
 </head>
 <body>
 <div class="layout">
 
-  <!-- ═══ HEADER ═══ -->
+  <!-- ══ HEADER ══ -->
   <header class="header">
-    <div class="header-left">
-      <h1>Inference Engine</h1>
-      <span class="header-tagline">PagedAttention · Continuous Batching · p99 TTFT tracking</span>
+    <div class="header-brand">
+      <div class="header-logo">⚡</div>
+      <div>
+        <div class="header-title">LLM Inference Engine</div>
+        <div class="header-sub">PagedAttention · Continuous Batching · Real-time streaming</div>
+      </div>
     </div>
     <div class="header-right">
-      <div class="ws-badge" id="ws-badge">
+      <div class="ws-status" id="ws-status">
         <span class="ws-dot"></span>
-        <span id="ws-badge-text">Connecting…</span>
+        <span id="ws-status-text">Connecting</span>
       </div>
     </div>
   </header>
 
-  <!-- ═══ BODY ═══ -->
-  <div class="body-panels">
+  <!-- ══ TOP METRICS ROW ══ -->
+  <div class="metrics-row">
+    <div class="metric-card" id="mc-throughput">
+      <div class="metric-label">Throughput</div>
+      <div class="metric-value" id="m-throughput">0<span class="unit">tok/s</span></div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-throughput" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card blue" id="mc-ttft">
+      <div class="metric-label">Avg TTFT</div>
+      <div class="metric-value" id="m-ttft">—<span class="unit">ms</span></div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-ttft" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card" id="mc-sessions">
+      <div class="metric-label">Active Sessions</div>
+      <div class="metric-value" id="m-sessions">0</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-sessions" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card yellow" id="mc-queue">
+      <div class="metric-label">Queue Depth</div>
+      <div class="metric-value" id="m-queue">0</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-queue" style="width:0%;background:var(--yellow)"></div></div>
+    </div>
+    <div class="metric-card blue" id="mc-gpu">
+      <div class="metric-label">GPU Utilization</div>
+      <div class="metric-value" id="m-gpu">0<span class="unit">%</span></div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-gpu" style="width:0%"></div></div>
+    </div>
+    <div class="metric-card" id="mc-efficiency">
+      <div class="metric-label">Batch Efficiency</div>
+      <div class="metric-value" id="m-efficiency">0<span class="unit">%</span></div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-efficiency" style="width:0%"></div></div>
+    </div>
+  </div>
 
-    <!-- LEFT — Terminal -->
-    <div class="left-pane">
+  <!-- ══ MAIN GRID ══ -->
+  <div class="main-grid">
 
-      <div class="terminal-header">
-        <div class="terminal-dots">
-          <div class="t-dot t-dot-r"></div>
-          <div class="t-dot t-dot-y"></div>
-          <div class="t-dot t-dot-g"></div>
-        </div>
-        <span class="terminal-title">inference — ws/generate</span>
-        <div class="queue-pill">
-          <span>queued</span>
-          <span class="queue-pill-count" id="queue-pill-count">0</span>
-        </div>
+    <!-- LEFT: Generation Terminal -->
+    <div class="panel gen-panel">
+      <div class="panel-header">
+        <span class="panel-title">Generation Terminal</span>
+        <span class="panel-badge" id="gen-session-badge">idle</span>
       </div>
-
-      <div class="terminal-output" id="terminal-output">
-        <div class="term-empty" id="term-empty">Type a prompt below and hit Generate. Tokens stream back in real time.</div>
-      </div>
-
-      <div class="input-area">
-        <div class="input-top-row">
-          <textarea
-            id="prompt-input"
-            class="prompt-textarea"
-            placeholder="What would you like the model to generate?"
-            rows="1"
-            autocomplete="off"
-            spellcheck="false"
-          ></textarea>
-          <button class="generate-btn" id="generate-btn">
-            <i data-lucide="zap" style="width:14px;height:14px;"></i>
-            Generate
-          </button>
+      <div class="panel-content">
+        <div class="form-group">
+          <div class="form-label">Prompt</div>
+          <textarea id="prompt-input" class="prompt-textarea" placeholder="What would you like the model to generate?" rows="4" spellcheck="false" autocomplete="off"></textarea>
         </div>
-        <div class="input-bottom-row">
-          <span class="priority-label">Priority</span>
-          <div class="priority-pills">
-            <div class="prio-pill" data-p="high">Rush</div>
-            <div class="prio-pill active" data-p="normal">Normal</div>
-            <div class="prio-pill" data-p="low">Background</div>
+
+        <div class="form-group">
+          <div class="form-label">Max Tokens — <span id="max-tokens-val" style="color:var(--green)">200</span></div>
+          <div class="slider-row">
+            <div class="slider-wrap">
+              <input type="range" id="max-tokens-slider" min="50" max="500" value="200" />
+            </div>
           </div>
-          <div class="max-tokens-wrap">
-            <span class="max-tokens-label">Max tokens</span>
-            <input type="number" class="max-tokens-input" id="max-tokens" value="128" min="1" max="2048" />
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">Temperature — <span id="temp-val" style="color:var(--green)">0.7</span></div>
+          <div class="slider-row">
+            <div class="slider-wrap">
+              <input type="range" id="temp-slider" min="1" max="20" value="7" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">Priority</div>
+          <div class="priority-tabs">
+            <button class="prio-tab" data-p="low">Low</button>
+            <button class="prio-tab active" data-p="normal">Normal</button>
+            <button class="prio-tab" data-p="high">High</button>
+          </div>
+        </div>
+
+        <button class="generate-btn" id="generate-btn">⚡ Generate</button>
+
+        <div class="form-group">
+          <div class="form-label">Output</div>
+          <div class="terminal-box" id="terminal-output">
+            <span class="terminal-empty">Tokens will stream here in real time...</span>
           </div>
         </div>
       </div>
+    </div>
 
-    </div><!-- /left-pane -->
-
-    <!-- RIGHT — Metrics -->
-    <div class="right-pane" id="right-pane">
-
-      <!-- TTFT Percentiles -->
-      <div class="section-title">Time to first token</div>
-      <div class="ttft-strip">
-        <div class="ttft-cell">
-          <div class="ttft-cell-label">Median</div>
-          <div class="ttft-cell-value" id="ttft-p50">—<span class="unit">ms</span></div>
+    <!-- CENTER: KV Cache Grid -->
+    <div class="panel cache-panel">
+      <div class="panel-header">
+        <span class="panel-title">KV Cache Memory</span>
+        <span class="panel-badge" id="kv-badge">0/64 pages</span>
+      </div>
+      <div class="panel-content">
+        <div class="kv-grid-wrap">
+          <div class="kv-grid" id="kv-grid"></div>
+          <div class="kv-label" id="kv-label">KV Cache: 0/64 pages</div>
+          <div class="kv-legend">
+            <div class="kv-legend-item">
+              <div class="kv-legend-dot" style="background:var(--bg4);border:1px solid var(--border)"></div>
+              Free
+            </div>
+            <div class="kv-legend-item">
+              <div class="kv-legend-dot" style="background:var(--blue)"></div>
+              Occupied
+            </div>
+            <div class="kv-legend-item">
+              <div class="kv-legend-dot" style="background:var(--green)"></div>
+              Active
+            </div>
+            <div class="kv-legend-item">
+              <div class="kv-legend-dot" style="background:var(--yellow)"></div>
+              Evicting
+            </div>
+          </div>
         </div>
-        <div class="ttft-cell">
-          <div class="ttft-cell-label">p95</div>
-          <div class="ttft-cell-value" id="ttft-p95">—<span class="unit">ms</span></div>
-        </div>
-        <div class="ttft-cell">
-          <div class="ttft-cell-label">p99</div>
-          <div class="ttft-cell-value" id="ttft-p99">—<span class="unit">ms</span></div>
+
+        <div class="cache-stats">
+          <div class="cache-stat">
+            <div class="cache-stat-label">Pages Free</div>
+            <div class="cache-stat-value" id="cs-pages-free">—</div>
+          </div>
+          <div class="cache-stat">
+            <div class="cache-stat-label">Pages Used</div>
+            <div class="cache-stat-value" id="cs-pages-used">—</div>
+          </div>
+          <div class="cache-stat">
+            <div class="cache-stat-label">VRAM Used</div>
+            <div class="cache-stat-value" id="cs-vram">—</div>
+          </div>
+          <div class="cache-stat">
+            <div class="cache-stat-label">Requests Served</div>
+            <div class="cache-stat-value" id="cs-reqs">—</div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Throughput hero -->
-      <div class="tps-hero">
-        <div class="tps-hero-label">Throughput</div>
-        <div class="tps-hero-value" id="tps-hero">—<span class="unit">tok/s</span></div>
+    <!-- RIGHT: Stress Test -->
+    <div class="panel stress-panel">
+      <div class="panel-header">
+        <span class="panel-title">Stress Test</span>
+        <span class="panel-badge" id="stress-badge">ready</span>
       </div>
+      <div class="panel-content">
+        <button class="stress-btn" id="stress-btn">⚡ Run Stress Test (10 concurrent)</button>
 
-      <!-- Chart -->
-      <div class="chart-section">
-        <div class="chart-section-header">
-          <span class="chart-header-label">Last 60 seconds</span>
-          <span class="chart-header-axis">60s ago → now</span>
+        <div class="stress-table-wrap">
+          <table class="stress-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Status</th>
+                <th>TTFT</th>
+                <th>Tokens</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="stress-tbody"></tbody>
+          </table>
         </div>
-        <canvas id="throughput-canvas" width="400" height="72"></canvas>
-      </div>
 
-      <!-- Queue -->
-      <div class="queue-display">
-        <div class="queue-top">
-          <span class="queue-state-label" id="queue-state-label">Queue is clear</span>
-          <span class="queue-count-val" id="queue-depth-val">0</span>
-        </div>
-        <div class="queue-track">
-          <div class="queue-fill" id="queue-fill" style="width:0%"></div>
-        </div>
-        <div class="queue-sub">
-          <strong id="active-sessions-val">0</strong> active sessions
-        </div>
-      </div>
-
-      <!-- VRAM -->
-      <div class="vram-section">
-        <div class="vram-top">
-          <span class="vram-label">GPU memory</span>
-          <span class="vram-val" id="vram-text">— MB used</span>
-        </div>
-        <div class="vram-track">
-          <div class="vram-fill" id="vram-fill" style="width:0%"></div>
+        <div class="stress-summary" id="stress-summary" style="display:none">
+          <div class="stress-summary-title">Summary</div>
+          <div class="stress-metric"><span>Avg TTFT</span><span class="stress-metric-val" id="ss-ttft">—</span></div>
+          <div class="stress-metric"><span>Avg Throughput</span><span class="stress-metric-val" id="ss-tps">—</span></div>
+          <div class="stress-metric"><span>P95 Time</span><span class="stress-metric-val" id="ss-p95">—</span></div>
+          <div class="stress-metric"><span>Completed</span><span class="stress-metric-val" id="ss-completed">—</span></div>
         </div>
       </div>
+    </div>
 
-      <!-- Misc stats -->
-      <div class="stat-row">
-        <span class="stat-label">Avg batch size</span>
-        <span class="stat-value" id="avg-batch">—</span>
+  </div><!-- /main-grid -->
+
+  <!-- ══ BOTTOM CHART ══ -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <span class="chart-title">Throughput History — 60s rolling window</span>
+      <div class="chart-live">
+        <div class="chart-live-dot"></div>
+        Live
       </div>
-      <div class="stat-row">
-        <span class="stat-label">KV pages free</span>
-        <span class="stat-value muted" id="pages-free">—</span>
-      </div>
+    </div>
+    <svg id="throughput-svg" viewBox="0 0 1200 80" preserveAspectRatio="none"></svg>
+  </div>
 
-      <!-- Totals -->
-      <div class="totals-grid">
-        <div class="total-cell">
-          <div class="total-cell-label">Requests served</div>
-          <div class="total-cell-value" id="total-req">0</div>
-        </div>
-        <div class="total-cell">
-          <div class="total-cell-label">Tokens generated</div>
-          <div class="total-cell-value" id="total-tok">0</div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="metrics-footer">
-        <a class="footer-link" href="/metrics" target="_blank">
-          <i data-lucide="bar-chart-2" style="width:13px;height:13px;"></i>
-          Prometheus metrics
-        </a>
-        <span class="uptime-val" id="uptime-text">—</span>
-      </div>
-
-    </div><!-- /right-pane -->
-
-  </div><!-- /body-panels -->
 </div><!-- /layout -->
 
 <script>
-/* =========================================================
-   Constants
-   ========================================================= */
-const wsUrl     = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/generate`;
-const POLL_MS   = 2000;
-const MAX_QUEUE = 20;
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const WS_URL   = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/generate`;
+const POLL_MS  = 2000;
+const KV_TOTAL = 64;
 
-/* =========================================================
-   State
-   ========================================================= */
+/* ================================================================
+   STATE
+   ================================================================ */
 let selectedPriority = "normal";
-let ws               = null;
 let isGenerating     = false;
 let throughputHistory = [];
+let kvOccupied       = 0;
+let kvActive         = 0;
+let stressRunning    = false;
 
-/* =========================================================
-   Lucide icons
-   ========================================================= */
-lucide.createIcons();
+/* ================================================================
+   UTILS
+   ================================================================ */
+function fmt1(n)  { return (n == null || isNaN(n)) ? "—" : Number(n).toFixed(1); }
+function fmtInt(n){ return (n == null || isNaN(n)) ? "—" : Math.round(n).toLocaleString(); }
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-/* =========================================================
-   WebSocket badge
-   ========================================================= */
-const wsBadge     = document.getElementById("ws-badge");
-const wsBadgeText = document.getElementById("ws-badge-text");
-
-function setWsBadge(state) {
-  wsBadge.className = "ws-badge " + (state || "");
-  const labels = { connected: "Live", error: "Error", "": "Offline" };
-  wsBadgeText.textContent = labels[state] ?? "Connecting…";
-}
-
-/* =========================================================
-   Terminal helpers
-   ========================================================= */
-const terminalOutput = document.getElementById("terminal-output");
-const termEmpty      = document.getElementById("term-empty");
-
-function hideEmpty() {
-  if (termEmpty) termEmpty.style.display = "none";
-}
-
-function createSessionBlock(prompt, sessionId) {
-  hideEmpty();
-  const block = document.createElement("div");
-  block.className = "session-block";
-  block.dataset.sessionId = sessionId;
-  block.innerHTML = `
-    <div class="session-meta">
-      <span class="session-id-label">session ${sessionId.slice(0, 8)}</span>
-      <span class="session-ttft-badge" id="ttft-${sessionId}"></span>
-      <span class="session-total-badge" id="total-${sessionId}"></span>
-    </div>
-    <div class="session-prompt-line">${escapeHtml(prompt)}</div>
-    <div class="session-response" id="response-${sessionId}"><span class="cursor"></span></div>
-  `;
-  terminalOutput.appendChild(block);
-  terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  return block;
-}
-
-function appendToken(sessionId, token) {
-  const el = document.getElementById("response-" + sessionId);
-  if (!el) return;
-  const cursor = el.querySelector(".cursor");
-  if (cursor) {
-    el.insertBefore(document.createTextNode(token), cursor);
-  } else {
-    el.insertAdjacentText("beforeend", token);
-  }
-  terminalOutput.scrollTop = terminalOutput.scrollHeight;
-}
-
-function showSessionTTFT(sessionId, ms) {
-  const el = document.getElementById("ttft-" + sessionId);
-  if (!el) return;
-  el.textContent = `First token: ${Math.round(ms)}ms`;
-  el.classList.add("visible");
-}
-
-function finalizeSession(sessionId, tokenCount, elapsedMs) {
-  const respEl = document.getElementById("response-" + sessionId);
-  if (respEl) {
-    const cursor = respEl.querySelector(".cursor");
-    if (cursor) cursor.remove();
-    respEl.classList.add("complete");
-  }
-  const totalEl = document.getElementById("total-" + sessionId);
-  if (totalEl) {
-    const tps = elapsedMs > 0 ? (tokenCount / (elapsedMs / 1000)).toFixed(1) : "—";
-    totalEl.textContent = `${tokenCount} tokens · ${Math.round(elapsedMs)}ms · ${tps} tok/s`;
-  }
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
-/* =========================================================
-   WebSocket / generation
-   ========================================================= */
-function sendPrompt(prompt) {
-  if (isGenerating) return;
-
-  const maxToks = parseInt(document.getElementById("max-tokens").value) || 128;
-  const sessionId = crypto.randomUUID();
-
-  const payload = {
-    prompt,
-    priority: selectedPriority,
-    max_tokens: maxToks,
-    session_id: sessionId,
-  };
-
-  isGenerating = true;
-  document.getElementById("generate-btn").disabled = true;
-
-  let tokenCount = 0;
-  let ttftShown  = false;
-  const genStart = performance.now();
-
-  createSessionBlock(prompt, sessionId);
-  updateQueuePill(1);
-
-  ws = new WebSocket(wsUrl);
-
-  ws.onopen = () => {
-    setWsBadge("connected");
-    ws.send(JSON.stringify(payload));
-  };
-
-  ws.onmessage = (evt) => {
-    let msg;
-    try { msg = JSON.parse(evt.data); } catch { return; }
-
-    if (msg.error) {
-      finalizeSession(sessionId, tokenCount, performance.now() - genStart);
-      // Append error note
-      const respEl = document.getElementById("response-" + sessionId);
-      if (respEl) {
-        respEl.insertAdjacentHTML("beforeend", `<span style="color:#F87171;"> [error: ${escapeHtml(String(msg.error))}]</span>`);
-        respEl.classList.add("complete");
-      }
-      finishGeneration();
-      return;
-    }
-
-    if (msg.is_final) {
-      const elapsed = performance.now() - genStart;
-      finalizeSession(sessionId, tokenCount, elapsed);
-      finishGeneration();
-      return;
-    }
-
-    if (msg.token) {
-      appendToken(sessionId, msg.token);
-      tokenCount++;
-      if (!ttftShown && msg.ttft_ms != null) {
-        showSessionTTFT(sessionId, msg.ttft_ms);
-        ttftShown = true;
-      }
-    }
-  };
-
-  ws.onerror = () => {
-    setWsBadge("error");
-    finalizeSession(sessionId, tokenCount, performance.now() - genStart);
-    const respEl = document.getElementById("response-" + sessionId);
-    if (respEl) {
-      respEl.insertAdjacentHTML("beforeend", `<span style="color:#F87171;"> [WebSocket error — is the backend running?]</span>`);
-      respEl.classList.add("complete");
-    }
-    finishGeneration();
-  };
-
-  ws.onclose = () => {
-    if (isGenerating) {
-      finalizeSession(sessionId, tokenCount, performance.now() - genStart);
-      finishGeneration();
-    }
-  };
-}
-
-function finishGeneration() {
-  isGenerating = false;
-  document.getElementById("generate-btn").disabled = false;
-  updateQueuePill(0);
-  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-}
-
-function updateQueuePill(n) {
-  document.getElementById("queue-pill-count").textContent = n;
-}
-
-/* =========================================================
-   Priority pills
-   ========================================================= */
-document.querySelectorAll(".prio-pill").forEach(pill => {
-  pill.addEventListener("click", () => {
-    document.querySelectorAll(".prio-pill").forEach(p => p.classList.remove("active"));
-    pill.classList.add("active");
-    selectedPriority = pill.dataset.p;
-  });
-});
-
-/* =========================================================
-   Textarea auto-grow + submit
-   ========================================================= */
-const promptInput  = document.getElementById("prompt-input");
-const generateBtn  = document.getElementById("generate-btn");
-
-promptInput.addEventListener("input", () => {
-  promptInput.style.height = "auto";
-  promptInput.style.height = Math.min(promptInput.scrollHeight, 120) + "px";
-});
-
-function doGenerate() {
-  const val = promptInput.value.trim();
-  if (!val || isGenerating) return;
-  promptInput.value = "";
-  promptInput.style.height = "auto";
-  sendPrompt(val);
-}
-
-generateBtn.addEventListener("click", doGenerate);
-promptInput.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doGenerate(); }
-});
-
-/* =========================================================
-   Metrics helpers
-   ========================================================= */
-async function fetchJSON(url) {
-  const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
-}
-
-function fmt(n, dec = 1) {
-  if (n == null || isNaN(n)) return "—";
-  return Number(n).toFixed(dec);
-}
-function fmtLarge(n) {
-  if (n == null || isNaN(n)) return "—";
-  return Number(n).toLocaleString();
-}
-
-/* =========================================================
-   Metrics update
-   ========================================================= */
-function updateMetrics(summary) {
-  // TTFT percentiles — show raw number in the cell, unit stays in HTML
-  setTtftCell("ttft-p50", summary.ttft_p50_ms);
-  setTtftCell("ttft-p95", summary.ttft_p95_ms);
-  setTtftCell("ttft-p99", summary.ttft_p99_ms);
-
-  // Throughput hero
-  const tps = summary.tokens_per_sec;
-  const tpsEl = document.getElementById("tps-hero");
-  tpsEl.innerHTML = tps != null
-    ? `${fmt(tps, 1)}<span class="unit">tok/s</span>`
-    : `—<span class="unit">tok/s</span>`;
-
-  // Queue
-  const qd = summary.queue_depth || 0;
-  const as  = summary.active_sessions || 0;
-  document.getElementById("queue-depth-val").textContent = qd;
-  document.getElementById("queue-fill").style.width = Math.min((qd / MAX_QUEUE) * 100, 100).toFixed(1) + "%";
-  document.getElementById("queue-state-label").textContent = qd === 0 ? "Queue is clear" : `${qd} waiting`;
-  document.getElementById("active-sessions-val").textContent = as;
-  document.getElementById("queue-pill-count").textContent = isGenerating ? Math.max(1, qd) : qd;
-
-  // VRAM
-  const usedMB  = summary.vram_used_mb  || 0;
-  const totalMB = summary.vram_total_mb || 80000;
-  const vramPct = Math.min((usedMB / totalMB) * 100, 100);
-  document.getElementById("vram-text").textContent = `${fmtLarge(Math.round(usedMB))} / ${fmtLarge(totalMB)} MB`;
-  const vramFill = document.getElementById("vram-fill");
-  vramFill.style.width = vramPct.toFixed(1) + "%";
-  vramFill.style.background = vramPct > 85 ? "#EF4444" : vramPct > 65 ? "#F59E0B" : "var(--accent)";
-
-  // Misc
-  document.getElementById("avg-batch").textContent = fmt(summary.avg_batch_size, 2);
-  document.getElementById("pages-free").textContent = fmtLarge(summary.pages_free || 0);
-
-  // Totals
-  document.getElementById("total-req").textContent = fmtLarge(summary.total_requests || 0);
-  document.getElementById("total-tok").textContent = fmtLarge(summary.total_tokens   || 0);
-
-  // Uptime
-  const up = summary.uptime_seconds || 0;
-  const h  = Math.floor(up / 3600);
-  const m  = Math.floor((up % 3600) / 60);
-  const s  = Math.floor(up % 60);
-  document.getElementById("uptime-text").textContent = `up ${h}h ${m}m ${s}s`;
-}
-
-function setTtftCell(id, val) {
+/* ================================================================
+   ANIMATED COUNTER  (snap if delta is small, animate if large)
+   ================================================================ */
+const _counterState = {};
+function animateCounter(id, targetVal, unit="", decimals=0) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (val == null || isNaN(val)) {
-    el.innerHTML = `—<span class="unit">ms</span>`;
-  } else {
-    el.innerHTML = `${Math.round(val)}<span class="unit">ms</span>`;
+  const key = id;
+  const current = _counterState[key] || 0;
+  const delta = Math.abs(targetVal - current);
+  if (delta < 0.5) {
+    // No animation needed; just set
+    _counterState[key] = targetVal;
+    const unitEl = el.querySelector('.unit');
+    const unitHtml = unitEl ? unitEl.outerHTML : '';
+    el.innerHTML = (decimals > 0 ? targetVal.toFixed(decimals) : Math.round(targetVal).toLocaleString()) + unitHtml;
+    return;
+  }
+  const steps = 12;
+  const stepSize = (targetVal - current) / steps;
+  let step = 0;
+  const tick = () => {
+    step++;
+    const v = current + stepSize * step;
+    _counterState[key] = v;
+    const unitEl = el.querySelector('.unit');
+    const unitHtml = unitEl ? unitEl.outerHTML : (unit ? `<span class="unit">${unit}</span>` : '');
+    el.innerHTML = (decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString()) + unitHtml;
+    if (step < steps) requestAnimationFrame(tick);
+    else {
+      _counterState[key] = targetVal;
+      el.innerHTML = (decimals > 0 ? targetVal.toFixed(decimals) : Math.round(targetVal).toLocaleString()) + unitHtml;
+    }
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ================================================================
+   WS STATUS BADGE
+   ================================================================ */
+function setWsStatus(state) {
+  const el = document.getElementById('ws-status');
+  const txt = document.getElementById('ws-status-text');
+  el.className = 'ws-status ' + (state || '');
+  txt.textContent = state === 'connected' ? 'Live' : state === 'error' ? 'Error' : 'Offline';
+}
+
+/* ================================================================
+   METRICS UPDATE
+   ================================================================ */
+function updateMetrics(s) {
+  // Throughput
+  const tps = s.tokens_per_sec || 0;
+  animateCounter('m-throughput', tps, 'tok/s', 1);
+  document.getElementById('mb-throughput').style.width = Math.min(tps / 200 * 100, 100) + '%';
+
+  // TTFT
+  const ttft = s.ttft_p50_ms || 0;
+  animateCounter('m-ttft', ttft, 'ms', 0);
+  document.getElementById('mb-ttft').style.width = Math.min(ttft / 500 * 100, 100) + '%';
+
+  // Sessions
+  const sessions = s.active_sessions || 0;
+  animateCounter('m-sessions', sessions, '', 0);
+  document.getElementById('mb-sessions').style.width = Math.min(sessions / 8 * 100, 100) + '%';
+
+  // Queue
+  const queue = s.queue_depth || 0;
+  animateCounter('m-queue', queue, '', 0);
+  document.getElementById('mb-queue').style.width = Math.min(queue / 20 * 100, 100) + '%';
+
+  // GPU utilization
+  const gpu = s.gpu_utilization || 0;
+  animateCounter('m-gpu', gpu, '%', 0);
+  document.getElementById('mb-gpu').style.width = Math.min(gpu, 100) + '%';
+
+  // Batch efficiency
+  const eff = s.batch_efficiency || 0;
+  animateCounter('m-efficiency', eff, '%', 0);
+  document.getElementById('mb-efficiency').style.width = Math.min(eff, 100) + '%';
+
+  // KV cache stats
+  const pagesFree = s.pages_free || 0;
+  const pagesUsed = s.pages_allocated || 0;
+  document.getElementById('cs-pages-free').textContent = fmtInt(pagesFree);
+  document.getElementById('cs-pages-used').textContent = fmtInt(pagesUsed);
+  const vramMB = s.vram_used_mb || 0;
+  document.getElementById('cs-vram').textContent = vramMB > 1000 ? (vramMB/1024).toFixed(1)+'GB' : Math.round(vramMB)+'MB';
+  document.getElementById('cs-reqs').textContent = fmtInt(s.total_requests || 0);
+
+  // Update KV grid based on real engine stats
+  kvOccupied = sessions;
+  updateKvGrid(pagesUsed, queue);
+}
+
+/* ================================================================
+   KV CACHE GRID
+   ================================================================ */
+function buildKvGrid() {
+  const grid = document.getElementById('kv-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < KV_TOTAL; i++) {
+    const block = document.createElement('div');
+    block.className = 'kv-block';
+    block.id = `kv-block-${i}`;
+    grid.appendChild(block);
   }
 }
 
-/* =========================================================
-   Canvas sparkline
-   ========================================================= */
-const canvas = document.getElementById("throughput-canvas");
-const ctx    = canvas.getContext("2d");
+let _kvAnimFrame = null;
+function updateKvGrid(pagesUsed, queueDepth) {
+  // Simulate a realistic page layout
+  // pagesUsed = occupied pages (blue)
+  // active generation = green pulse on some
+  // evicting = yellow for queued
+  const totalUsed = Math.min(pagesUsed, KV_TOTAL);
+  const activePages = Math.min(kvOccupied * 2, totalUsed);
+  const evictingPages = Math.min(queueDepth, KV_TOTAL - totalUsed);
 
-function resizeCanvas() {
-  const dpr  = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  for (let i = 0; i < KV_TOTAL; i++) {
+    const block = document.getElementById(`kv-block-${i}`);
+    if (!block) continue;
+    if (i < activePages) {
+      block.className = 'kv-block active';
+    } else if (i < totalUsed) {
+      block.className = 'kv-block occupied';
+    } else if (i < totalUsed + evictingPages) {
+      block.className = 'kv-block evicting';
+    } else {
+      block.className = 'kv-block';
+    }
+  }
+
+  const label = `KV Cache: ${totalUsed}/${KV_TOTAL} pages`;
+  document.getElementById('kv-label').textContent = label;
+  document.getElementById('kv-badge').textContent = `${totalUsed}/${KV_TOTAL} pages`;
 }
-resizeCanvas();
-window.addEventListener("resize", () => { resizeCanvas(); drawChart(throughputHistory); });
 
+// Animate grid during active generation
+function animateKvGridActive(active) {
+  if (active) {
+    let tick = 0;
+    const doAnim = () => {
+      // Occasionally flicker a random occupied block to active
+      if (isGenerating || stressRunning) {
+        const occupied = [];
+        for (let i = 0; i < KV_TOTAL; i++) {
+          const b = document.getElementById(`kv-block-${i}`);
+          if (b && (b.className.includes('occupied') || b.className.includes('active'))) {
+            occupied.push(i);
+          }
+        }
+        if (occupied.length > 0) {
+          const r = occupied[Math.floor(Math.random() * occupied.length)];
+          const b = document.getElementById(`kv-block-${r}`);
+          if (b) {
+            b.className = 'kv-block active';
+            setTimeout(() => { if (b) b.className = 'kv-block occupied'; }, 600);
+          }
+        }
+        _kvAnimFrame = setTimeout(doAnim, 300 + Math.random() * 400);
+      }
+    };
+    if (_kvAnimFrame) clearTimeout(_kvAnimFrame);
+    doAnim();
+  } else {
+    if (_kvAnimFrame) { clearTimeout(_kvAnimFrame); _kvAnimFrame = null; }
+  }
+}
+
+/* ================================================================
+   THROUGHPUT SVG CHART
+   ================================================================ */
 function drawChart(history) {
-  const rect = canvas.getBoundingClientRect();
-  const w = rect.width;
-  const h = rect.height;
-  const dpr = window.devicePixelRatio || 1;
-  ctx.clearRect(0, 0, w * dpr, h * dpr);
+  const svg = document.getElementById('throughput-svg');
+  if (!svg) return;
 
-  // Paper background
-  ctx.fillStyle = "#F0EFE9";
-  ctx.beginPath();
-  ctx.roundRect(0, 0, w, h, 6);
-  ctx.fill();
+  const W = 1200, H = 80;
+  const padL = 0, padR = 0, padT = 8, padB = 4;
 
   if (!history || history.length < 2) {
-    // Empty state hint
-    ctx.fillStyle = "rgba(113,113,122,0.3)";
-    ctx.font = `11px 'Plus Jakarta Sans', sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("No data yet", w / 2, h / 2 + 4);
+    svg.innerHTML = `<text x="${W/2}" y="${H/2+4}" text-anchor="middle" fill="rgba(255,255,255,0.15)" font-family="JetBrains Mono" font-size="12">No data yet</text>`;
     return;
   }
 
   const vals = history.map(d => d.tokens || 0);
   const maxVal = Math.max(...vals, 1);
+  const n = vals.length;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
 
-  const padL = 8, padR = 8, padT = 10, padB = 10;
-  const cw = w - padL - padR;
-  const ch = h - padT - padB;
-  const n  = vals.length;
-
-  // Subtle grid
-  ctx.strokeStyle = "rgba(113,113,122,0.12)";
-  ctx.lineWidth = 0.5;
-  for (let i = 0; i <= 3; i++) {
-    const y = padT + (ch / 3) * i;
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w - padR, y);
-    ctx.stroke();
-  }
-
-  // Points
   const points = vals.map((v, i) => ({
     x: padL + (i / (n - 1)) * cw,
     y: padT + ch - (v / maxVal) * ch,
   }));
 
-  // Gradient fill
-  const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
-  grad.addColorStop(0, "rgba(8,145,178,0.18)");
-  grad.addColorStop(1, "rgba(8,145,178,0.01)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, padT + ch);
-  ctx.lineTo(points[0].x, points[0].y);
+  // Build smooth path
+  let pathD = `M ${points[0].x} ${points[0].y}`;
   for (let i = 1; i < points.length; i++) {
-    // Smooth monotone-ish curve
-    const px = points[i - 1];
-    const cx_ = points[i];
+    const px = points[i-1], cx_ = points[i];
     const cpx = (px.x + cx_.x) / 2;
-    ctx.bezierCurveTo(cpx, px.y, cpx, cx_.y, cx_.x, cx_.y);
+    pathD += ` C ${cpx} ${px.y} ${cpx} ${cx_.y} ${cx_.x} ${cx_.y}`;
   }
-  ctx.lineTo(points[points.length - 1].x, padT + ch);
-  ctx.closePath();
-  ctx.fill();
 
-  // Stroke
-  ctx.strokeStyle = "var(--accent)";
-  ctx.strokeStyle = "#0891B2";
-  ctx.lineWidth = 1.6;
-  ctx.lineJoin = "round";
-  ctx.lineCap  = "round";
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
+  // Fill path
+  let fillD = `M ${points[0].x} ${H}`;
+  fillD += ` L ${points[0].x} ${points[0].y}`;
   for (let i = 1; i < points.length; i++) {
-    const px  = points[i - 1];
-    const cx_ = points[i];
+    const px = points[i-1], cx_ = points[i];
     const cpx = (px.x + cx_.x) / 2;
-    ctx.bezierCurveTo(cpx, px.y, cpx, cx_.y, cx_.x, cx_.y);
+    fillD += ` C ${cpx} ${px.y} ${cpx} ${cx_.y} ${cx_.x} ${cx_.y}`;
   }
-  ctx.stroke();
+  fillD += ` L ${points[points.length-1].x} ${H} Z`;
 
-  // Last value dot
-  const last = points[points.length - 1];
-  ctx.fillStyle = "#0891B2";
-  ctx.beginPath();
-  ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
-  ctx.fill();
+  const lastVal = vals[vals.length-1];
+  const lastPt  = points[points.length-1];
 
-  // Last value label
-  const lastVal = vals[vals.length - 1];
-  if (lastVal > 0) {
-    ctx.fillStyle = "#0891B2";
-    ctx.font = `500 10px 'JetBrains Mono', monospace`;
-    ctx.textAlign = "right";
-    ctx.fillText(lastVal + " tok/s", w - padR - 6, padT + 12);
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#00ff88" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${fillD}" fill="url(#chart-grad)"/>
+    <path d="${pathD}" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastPt.x}" cy="${lastPt.y}" r="3" fill="#00ff88"/>
+    ${lastVal > 0 ? `<text x="${Math.min(lastPt.x + 6, W - 60)}" y="${Math.max(lastPt.y - 5, 14)}" fill="#00ff88" font-family="JetBrains Mono" font-size="10" font-weight="600">${lastVal} tok/s</text>` : ''}
+  `;
+}
+
+/* ================================================================
+   GENERATION TERMINAL
+   ================================================================ */
+function clearTerminal() {
+  document.getElementById('terminal-output').innerHTML = '<span class="terminal-empty">Tokens will stream here in real time...</span>';
+}
+
+function startTerminalSession(prompt) {
+  const box = document.getElementById('terminal-output');
+  box.innerHTML = `
+    <div class="terminal-prompt-line">${escHtml(prompt.slice(0,80))}${prompt.length>80?'…':''}</div>
+    <div id="term-ttft" class="terminal-ttft"></div>
+    <div class="terminal-response" id="term-response"><span class="cursor"></span></div>
+    <div class="terminal-stats" id="term-stats" style="display:none"></div>
+  `;
+}
+
+function appendTerminalToken(token) {
+  const resp = document.getElementById('term-response');
+  if (!resp) return;
+  const cursor = resp.querySelector('.cursor');
+  if (cursor) resp.insertBefore(document.createTextNode(token), cursor);
+  else resp.insertAdjacentText('beforeend', token);
+  const box = document.getElementById('terminal-output');
+  box.scrollTop = box.scrollHeight;
+}
+
+function showTerminalTTFT(ms) {
+  const el = document.getElementById('term-ttft');
+  if (el) el.textContent = `First token in ${Math.round(ms)}ms`;
+}
+
+function finalizeTerminal(tokenCount, elapsedMs) {
+  const resp = document.getElementById('term-response');
+  if (resp) {
+    const cursor = resp.querySelector('.cursor');
+    if (cursor) cursor.remove();
+    resp.classList.add('done');
+  }
+  const stats = document.getElementById('term-stats');
+  if (stats) {
+    const tps = elapsedMs > 0 ? (tokenCount / (elapsedMs/1000)).toFixed(1) : '—';
+    stats.style.display = '';
+    stats.textContent = `${tokenCount} tokens · ${Math.round(elapsedMs)}ms · ${tps} tok/s`;
   }
 }
 
-/* =========================================================
-   Polling loop
-   ========================================================= */
+/* ================================================================
+   PRIORITY TABS
+   ================================================================ */
+document.querySelectorAll('.prio-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.prio-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    selectedPriority = tab.dataset.p;
+  });
+});
+
+/* ================================================================
+   SLIDERS
+   ================================================================ */
+const maxTokensSlider = document.getElementById('max-tokens-slider');
+const tempSlider = document.getElementById('temp-slider');
+maxTokensSlider.addEventListener('input', () => {
+  document.getElementById('max-tokens-val').textContent = maxTokensSlider.value;
+});
+tempSlider.addEventListener('input', () => {
+  document.getElementById('temp-val').textContent = (tempSlider.value / 10).toFixed(1);
+});
+
+/* ================================================================
+   MAIN GENERATE
+   ================================================================ */
+document.getElementById('generate-btn').addEventListener('click', doGenerate);
+document.getElementById('prompt-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doGenerate(); }
+});
+
+function doGenerate() {
+  if (isGenerating) return;
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) return;
+  document.getElementById('prompt-input').value = '';
+
+  isGenerating = true;
+  document.getElementById('generate-btn').disabled = true;
+  document.getElementById('gen-session-badge').textContent = 'streaming';
+  animateKvGridActive(true);
+  startTerminalSession(prompt);
+
+  const maxTokens = parseInt(maxTokensSlider.value) || 200;
+  let tokenCount = 0;
+  let ttftShown  = false;
+  const start    = performance.now();
+
+  const ws = new WebSocket(WS_URL);
+  ws.onopen = () => {
+    setWsStatus('connected');
+    ws.send(JSON.stringify({ prompt, max_tokens: maxTokens, priority: selectedPriority }));
+  };
+  ws.onmessage = (evt) => {
+    let msg; try { msg = JSON.parse(evt.data); } catch { return; }
+    if (msg.error) {
+      const resp = document.getElementById('term-response');
+      if (resp) resp.insertAdjacentHTML('beforeend', `<span style="color:var(--red)"> [error: ${escHtml(String(msg.error))}]</span>`);
+      finishGeneration(tokenCount, start);
+      return;
+    }
+    if (msg.is_final) { finishGeneration(tokenCount, start); return; }
+    if (msg.token) {
+      appendTerminalToken(msg.token);
+      tokenCount++;
+      if (!ttftShown && msg.ttft_ms != null) {
+        showTerminalTTFT(msg.ttft_ms);
+        ttftShown = true;
+      }
+    }
+  };
+  ws.onerror = () => {
+    setWsStatus('error');
+    const resp = document.getElementById('term-response');
+    if (resp) resp.insertAdjacentHTML('beforeend', `<span style="color:var(--red)"> [WebSocket error]</span>`);
+    finishGeneration(tokenCount, start);
+  };
+  ws.onclose = () => {
+    if (isGenerating) finishGeneration(tokenCount, start);
+  };
+}
+
+function finishGeneration(tokenCount, start) {
+  if (!isGenerating) return;
+  isGenerating = false;
+  const elapsed = performance.now() - (start || 0);
+  finalizeTerminal(tokenCount, elapsed);
+  document.getElementById('generate-btn').disabled = false;
+  document.getElementById('gen-session-badge').textContent = 'done';
+  animateKvGridActive(false);
+}
+
+/* ================================================================
+   STRESS TEST
+   ================================================================ */
+const STRESS_PROMPTS = [
+  "Explain the transformer architecture in detail",
+  "Write a Python function to implement quicksort",
+  "Describe the PagedAttention memory management technique",
+  "What is continuous batching in LLM inference?",
+  "Explain how CUDA kernels work for neural networks",
+  "Describe the differences between GPT-3 and GPT-4",
+  "How does KV cache work in attention mechanisms?",
+  "Explain beam search vs greedy decoding",
+  "What is speculative decoding in LLM inference?",
+  "Describe how Flash Attention reduces memory usage",
+];
+
+document.getElementById('stress-btn').addEventListener('click', runStressTest);
+
+async function runStressTest() {
+  if (stressRunning) return;
+  stressRunning = true;
+  document.getElementById('stress-btn').disabled = true;
+  document.getElementById('stress-badge').textContent = 'running';
+  document.getElementById('stress-summary').style.display = 'none';
+  animateKvGridActive(true);
+
+  const N = 10;
+  const tbody = document.getElementById('stress-tbody');
+  tbody.innerHTML = '';
+
+  const rows = [];
+  for (let i = 0; i < N; i++) {
+    const tr = document.createElement('tr');
+    tr.className = 'stress-row pending';
+    tr.innerHTML = `<td>${i+1}</td><td>pending</td><td>—</td><td>—</td><td>—</td>`;
+    tbody.appendChild(tr);
+    rows.push(tr);
+  }
+
+  const results = [];
+
+  const tasks = STRESS_PROMPTS.map((prompt, i) => {
+    return new Promise((resolve) => {
+      const startT = performance.now();
+      let tokenCount = 0;
+      let ttft = null;
+      const ws = new WebSocket(WS_URL);
+      rows[i].className = 'stress-row streaming';
+      rows[i].cells[1].textContent = 'connecting';
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ prompt, max_tokens: 80, priority: 'normal' }));
+        rows[i].cells[1].textContent = 'streaming';
+      };
+      ws.onmessage = (evt) => {
+        let msg; try { msg = JSON.parse(evt.data); } catch { return; }
+        if (msg.is_final || msg.error) {
+          const elapsed = performance.now() - startT;
+          rows[i].className = msg.error ? 'stress-row error' : 'stress-row done';
+          rows[i].cells[1].textContent = msg.error ? 'error' : 'done';
+          rows[i].cells[2].textContent = ttft != null ? Math.round(ttft)+'ms' : '—';
+          rows[i].cells[3].textContent = tokenCount;
+          rows[i].cells[4].textContent = Math.round(elapsed)+'ms';
+          results.push({ ttft, tokenCount, elapsed, error: !!msg.error });
+          resolve();
+          return;
+        }
+        if (msg.token) {
+          tokenCount++;
+          if (ttft == null && msg.ttft_ms != null) {
+            ttft = msg.ttft_ms;
+            rows[i].cells[2].textContent = Math.round(ttft)+'ms';
+          }
+          rows[i].cells[3].textContent = tokenCount;
+          rows[i].cells[4].textContent = Math.round(performance.now()-startT)+'ms';
+        }
+      };
+      ws.onerror = ws.onclose = () => {
+        if (rows[i].className === 'stress-row streaming' || rows[i].className === 'stress-row pending') {
+          const elapsed = performance.now() - startT;
+          rows[i].className = 'stress-row error';
+          rows[i].cells[1].textContent = 'error';
+          rows[i].cells[4].textContent = Math.round(elapsed)+'ms';
+          results.push({ ttft: null, tokenCount, elapsed, error: true });
+          resolve();
+        }
+      };
+    });
+  });
+
+  await Promise.all(tasks);
+
+  stressRunning = false;
+  if (!isGenerating) animateKvGridActive(false);
+  document.getElementById('stress-btn').disabled = false;
+  document.getElementById('stress-badge').textContent = 'done';
+
+  // Compute summary
+  const ok = results.filter(r => !r.error);
+  if (ok.length > 0) {
+    const ttfts = ok.filter(r => r.ttft != null).map(r => r.ttft).sort((a,b)=>a-b);
+    const avgTtft = ttfts.length ? (ttfts.reduce((s,v)=>s+v,0)/ttfts.length).toFixed(0) : '—';
+    const tpsVals = ok.map(r => r.tokenCount / Math.max(r.elapsed/1000, 0.001));
+    const avgTps  = (tpsVals.reduce((s,v)=>s+v,0)/tpsVals.length).toFixed(1);
+    const elapseds = ok.map(r => r.elapsed).sort((a,b)=>a-b);
+    const p95idx   = Math.ceil(elapseds.length * 0.95) - 1;
+    const p95      = (elapseds[Math.max(p95idx,0)] / 1000).toFixed(2);
+
+    document.getElementById('ss-ttft').textContent      = avgTtft !== '—' ? avgTtft+'ms' : '—';
+    document.getElementById('ss-tps').textContent       = avgTps+' tok/s';
+    document.getElementById('ss-p95').textContent       = p95+'s';
+    document.getElementById('ss-completed').textContent = `${ok.length}/${N}`;
+    document.getElementById('stress-summary').style.display = '';
+  }
+}
+
+/* ================================================================
+   POLLING LOOP
+   ================================================================ */
 async function pollMetrics() {
   try {
-    const [summaryRes, thrHistRes] = await Promise.allSettled([
-      fetchJSON("/api/metrics/summary"),
-      fetchJSON("/api/throughput/history"),
+    const [sumRes, thrRes] = await Promise.allSettled([
+      fetch('/api/metrics/summary', { signal: AbortSignal.timeout(3000) }).then(r=>r.json()),
+      fetch('/api/throughput/history', { signal: AbortSignal.timeout(3000) }).then(r=>r.json()),
     ]);
-
-    if (summaryRes.status === "fulfilled") {
-      updateMetrics(summaryRes.value);
-    }
-    if (thrHistRes.status === "fulfilled" && thrHistRes.value.history) {
-      throughputHistory = thrHistRes.value.history;
+    if (sumRes.status === 'fulfilled') updateMetrics(sumRes.value);
+    if (thrRes.status === 'fulfilled' && thrRes.value.history) {
+      throughputHistory = thrRes.value.history;
       drawChart(throughputHistory);
     }
-  } catch (_) {
-    // Backend offline — fail silently
-  }
+  } catch (_) {}
 }
 
-/* =========================================================
-   Boot
-   ========================================================= */
+/* ================================================================
+   BOOT
+   ================================================================ */
 (async () => {
+  // Build KV grid
+  buildKvGrid();
+
+  // Health check
   try {
-    await fetchJSON("/api/health");
-    setWsBadge("connected");
+    await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
+    setWsStatus('connected');
   } catch {
-    setWsBadge("error");
+    setWsStatus('error');
   }
-  pollMetrics();
+
+  // Poll immediately then every 2s
+  await pollMetrics();
   setInterval(pollMetrics, POLL_MS);
 })();
 </script>
