@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source
 COPY engine/ /app/engine/
+COPY frontend/ /app/frontend/
 COPY tests/ /app/tests/
 
 ENV PYTHONPATH=/app
