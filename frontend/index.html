@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Inference Engine</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #1C1C1E;
+      --bg-panel:    #242426;
+      --bg-input:    #2C2C2E;
+      --bg-row:      #28282A;
+      --border:      #38383A;
+      --text:        #E5E5EA;
+      --text-dim:    #8E8E93;
+      --text-dimmer: #48484A;
+      --green:       #4ADE80;
+      --orange:      #FB923C;
+      --coral:       #F87171;
+      --amber:       #FBBF24;
+      --blue:        #60A5FA;
+      --purple:      #A78BFA;
+      --font-mono:   "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+      --font-sys:    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sys);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* LEFT — terminal / chat */
+    .left-pane {
+      flex: 0 0 60%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* RIGHT — metrics tape */
+    .right-pane {
+      flex: 0 0 40%;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 18px 20px 24px;
+      gap: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+    .header .subtitle {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dimmer);
+      display: inline-block;
+      margin-left: auto;
+      flex-shrink: 0;
+      transition: background 0.4s;
+    }
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.error     { background: var(--coral); }
+
+    /* ── Controls bar ── */
+    .controls {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .label-row span {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.03em;
+    }
+
+    /* Model buttons */
+    .model-btn {
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: all 0.15s;
+    }
+    .model-btn.active {
+      background: var(--bg-input);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .model-btn:hover:not(.active) {
+      border-color: var(--text-dimmer);
+      color: var(--text);
+    }
+
+    /* Priority tabs */
+    .priority-tabs {
+      display: flex;
+      gap: 2px;
+    }
+    .prio-tab {
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 3px;
+      color: var(--text-dimmer);
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .prio-tab.active { background: var(--bg-row); color: var(--text); }
+    .prio-tab[data-p="high"].active  { color: var(--coral); }
+    .prio-tab[data-p="normal"].active { color: var(--amber); }
+    .prio-tab[data-p="low"].active   { color: var(--blue); }
+
+    /* Max tokens */
+    .token-input {
+      width: 70px;
+      padding: 2px 7px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .token-input:focus { outline: none; border-color: var(--text-dimmer); }
+
+    /* ── Terminal ── */
+    .terminal {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      scroll-behavior: smooth;
+    }
+    .terminal::-webkit-scrollbar { width: 5px; }
+    .terminal::-webkit-scrollbar-track { background: transparent; }
+    .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .term-line { display: flex; gap: 8px; margin-bottom: 2px; }
+    .term-prompt { color: var(--green); flex-shrink: 0; user-select: none; }
+    .term-text { color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    .term-text.user  { color: var(--amber); }
+    .term-text.system { color: var(--text-dim); font-style: italic; }
+    .term-text.response { color: #D4D4D8; }
+    .term-text.error { color: var(--coral); }
+
+    /* Live indicators inside terminal */
+    .live-indicators {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-top: 4px;
+      margin-bottom: 6px;
+      padding-left: 16px;
+    }
+    .ind-ttft {
+      font-size: 11px;
+      color: var(--amber);
+      font-family: var(--font-mono);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .ind-ttft.visible { opacity: 1; }
+    .ind-tps {
+      font-size: 11px;
+      color: var(--blue);
+      font-family: var(--font-mono);
+    }
+
+    /* ── Input row ── */
+    .input-row {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .input-prompt {
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .prompt-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      caret-color: var(--green);
+    }
+    .prompt-input:focus { outline: none; }
+    .prompt-input::placeholder { color: var(--text-dimmer); }
+    .send-btn {
+      padding: 4px 14px;
+      background: transparent;
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      color: var(--green);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-mono);
+    }
+    .send-btn:hover { background: rgba(74,222,128,0.1); }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ═══════════════════════════════════════════════
+       RIGHT PANEL
+       ═══════════════════════════════════════════════ */
+    .panel-heading {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dimmer);
+      margin-top: 20px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-heading:first-child { margin-top: 0; }
+
+    /* Tape rows */
+    .tape-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(56,56,58,0.5);
+    }
+    .tape-row:last-child { border-bottom: none; }
+    .tape-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+    }
+    .tape-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
+      min-width: 80px;
+      text-align: right;
+    }
+    .tape-value.good    { color: var(--green); }
+    .tape-value.warn    { color: var(--orange); }
+    .tape-value.crit    { color: var(--coral); }
+
+    /* VRAM bar */
+    .vram-bar-wrap {
+      margin: 6px 0 10px;
+    }
+    .vram-bar-track {
+      height: 5px;
+      background: var(--bg-row);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .vram-bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .vram-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-dimmer);
+      font-family: var(--font-mono);
+      margin-top: 3px;
+    }
+
+    /* Queue bar */
+    .queue-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 2px 0;
+    }
+    .queue-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-row);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .queue-bar-fill {
+      height: 100%;
+      background: var(--amber);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .queue-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--amber);
+      min-width: 20px;
+      text-align: right;
+    }
+
+    /* ── Throughput Chart ── */
+    .chart-wrap {
+      margin-top: 4px;
+      position: relative;
+    }
+    #throughput-canvas {
+      width: 100%;
+      height: 80px;
+      display: block;
+      border-radius: 4px;
+    }
+    .chart-axis-label {
+      font-size: 9px;
+      color: var(--text-dimmer);
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 3px;
+    }
+
+    /* ── Session log ── */
+    .session-log {
+      margin-top: 4px;
+    }
+    .session-item {
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(56,56,58,0.4);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px;
+    }
+    .session-item:last-child { border-bottom: none; }
+    .session-id-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dimmer);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .session-model-tag {
+      font-size: 10px;
+      color: var(--purple);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+    .session-stats {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      grid-column: 1 / -1;
+    }
+
+    /* ── Footer ── */
+    .panel-footer {
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .prom-link {
+      font-size: 10px;
+      color: var(--text-dimmer);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+    }
+    .prom-link:hover { color: var(--blue); }
+    .uptime-text {
+      font-size: 10px;
+      color: var(--text-dimmer);
+      font-family: var(--font-mono);
+    }
+
+    /* Scrollbar for right pane */
+    .right-pane::-webkit-scrollbar { width: 4px; }
+    .right-pane::-webkit-scrollbar-track { background: transparent; }
+    .right-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Spinner cursor in terminal while generating */
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 13px;
+      background: var(--green);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ═══ LEFT PANE ═══ -->
+  <div class="left-pane">
+
+    <div class="header">
+      <h1>LLM Inference Engine</h1>
+      <span class="subtitle">PagedAttention · Dynamic Batching · WebSocket</span>
+      <div class="status-dot" id="status-dot" title="WebSocket status"></div>
+    </div>
+
+    <div class="controls">
+      <div class="label-row">
+        <span>Model</span>
+        <button class="model-btn active" data-model="Mistral-7B" id="btn-mistral">Mistral-7B</button>
+        <button class="model-btn" data-model="Llama-3-8B" id="btn-llama">Llama-3-8B</button>
+      </div>
+
+      <div class="label-row">
+        <span>Priority</span>
+        <div class="priority-tabs">
+          <div class="prio-tab" data-p="high">high</div>
+          <div class="prio-tab active" data-p="normal">normal</div>
+          <div class="prio-tab" data-p="low">low</div>
+        </div>
+      </div>
+
+      <div class="label-row">
+        <span>Max tokens</span>
+        <input type="number" class="token-input" id="max-tokens" value="128" min="1" max="2048" />
+      </div>
+    </div>
+
+    <div class="terminal" id="terminal">
+      <div class="term-line">
+        <span class="term-prompt">#</span>
+        <span class="term-text system">LLM Inference Engine ready. Type a prompt below.</span>
+      </div>
+      <div class="term-line">
+        <span class="term-prompt">#</span>
+        <span class="term-text system">Connecting to ws://localhost:8001/ws/generate …</span>
+      </div>
+    </div>
+
+    <div class="live-indicators" id="live-indicators">
+      <span class="ind-ttft" id="ind-ttft">First token: —</span>
+      <span class="ind-tps" id="ind-tps" style="opacity:0">tok/s: —</span>
+    </div>
+
+    <div class="input-row">
+      <span class="input-prompt">&gt;</span>
+      <input
+        type="text"
+        class="prompt-input"
+        id="prompt-input"
+        placeholder="Enter prompt and press Enter or Send…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="send-btn" id="send-btn">Send</button>
+    </div>
+  </div><!-- /left-pane -->
+
+  <!-- ═══ RIGHT PANE ═══ -->
+  <div class="right-pane" id="right-pane">
+
+    <div class="panel-heading">System Resources</div>
+
+    <div class="vram-bar-wrap">
+      <div class="tape-row" style="border:none;padding-bottom:2px;">
+        <span class="tape-label">VRAM</span>
+        <span class="tape-value" id="vram-text">0 / 80,000 MB</span>
+      </div>
+      <div class="vram-bar-track">
+        <div class="vram-bar-fill" id="vram-fill" style="width:0%"></div>
+      </div>
+      <div class="vram-labels">
+        <span>0 MB</span>
+        <span id="vram-total-label">80,000 MB</span>
+      </div>
+    </div>
+
+    <div class="tape-row">
+      <span class="tape-label">Active Sessions</span>
+      <span class="tape-value good" id="active-sessions">0</span>
+    </div>
+
+    <div class="tape-row">
+      <span class="tape-label">KV Pages Free</span>
+      <span class="tape-value" id="pages-free">—</span>
+    </div>
+
+    <div class="tape-row" style="flex-direction:column; align-items:stretch; gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span class="tape-label">Queue Depth</span>
+        <span class="tape-value" id="queue-depth-val">0</span>
+      </div>
+      <div class="queue-bar-wrap">
+        <div class="queue-bar-track">
+          <div class="queue-bar-fill" id="queue-bar-fill" style="width:0%"></div>
+        </div>
+        <span class="queue-count" id="queue-count">0</span>
+      </div>
+    </div>
+
+    <div class="panel-heading">Throughput &amp; Latency</div>
+
+    <div class="tape-row">
+      <span class="tape-label">Throughput</span>
+      <span class="tape-value good" id="tps-val">— tok/s</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">TTFT p50</span>
+      <span class="tape-value" id="ttft-p50">— ms</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">TTFT p95</span>
+      <span class="tape-value" id="ttft-p95">— ms</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">TTFT p99</span>
+      <span class="tape-value" id="ttft-p99">— ms</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">Avg Batch Size</span>
+      <span class="tape-value" id="avg-batch">—</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">Total Requests</span>
+      <span class="tape-value" id="total-req">0</span>
+    </div>
+    <div class="tape-row">
+      <span class="tape-label">Total Tokens</span>
+      <span class="tape-value" id="total-tok">0</span>
+    </div>
+
+    <div class="panel-heading">Throughput — 60s</div>
+    <div class="chart-wrap">
+      <canvas id="throughput-canvas" width="400" height="80"></canvas>
+      <div class="chart-axis-label">
+        <span>60s ago</span>
+        <span>now</span>
+      </div>
+    </div>
+
+    <div class="panel-heading">Session Log</div>
+    <div class="session-log" id="session-log">
+      <div style="font-size:11px;color:var(--text-dimmer);padding:4px 0;">No completed sessions yet.</div>
+    </div>
+
+    <div class="panel-footer">
+      <a class="prom-link" href="http://localhost:8001/metrics" target="_blank">View /metrics →</a>
+      <span class="uptime-text" id="uptime-text">uptime —</span>
+    </div>
+
+  </div><!-- /right-pane -->
+</div><!-- /layout -->
+
+<script>
+/* =========================================================
+   Configuration
+   ========================================================= */
+const API_BASE  = "http://localhost:8001";
+const WS_BASE   = "ws://localhost:8001";
+const POLL_MS   = 2000;   // metrics polling interval
+const CHART_W   = 400;
+const CHART_H   = 80;
+const MAX_QUEUE = 16;     // for queue bar scale
+
+/* =========================================================
+   State
+   ========================================================= */
+let selectedModel    = "Mistral-7B";
+let selectedPriority = "normal";
+let ws               = null;
+let isGenerating     = false;
+let currentReplyEl   = null;
+let generationStart  = 0;
+let tokenCount       = 0;
+let ttftShown        = false;
+let throughputHistory = [];  // [{age_s, tokens}]
+
+/* =========================================================
+   Utility
+   ========================================================= */
+function fmt(n, decimals = 1) {
+  if (n == null || isNaN(n)) return "—";
+  return Number(n).toFixed(decimals);
+}
+function fmtLarge(n) {
+  if (n == null || isNaN(n)) return "—";
+  return Number(n).toLocaleString();
+}
+
+/* =========================================================
+   Terminal helpers
+   ========================================================= */
+const terminal = document.getElementById("terminal");
+
+function addTermLine(prompt, text, cls = "") {
+  const line = document.createElement("div");
+  line.className = "term-line";
+  line.innerHTML = `<span class="term-prompt">${prompt}</span><span class="term-text ${cls}">${text}</span>`;
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+  return line;
+}
+
+function addResponseContainer() {
+  const line = document.createElement("div");
+  line.className = "term-line";
+  const prompt = document.createElement("span");
+  prompt.className = "term-prompt";
+  prompt.textContent = "◈";
+  const text = document.createElement("span");
+  text.className = "term-text response";
+  const cursor = document.createElement("span");
+  cursor.className = "cursor";
+  cursor.id = "live-cursor";
+  text.appendChild(cursor);
+  line.appendChild(prompt);
+  line.appendChild(text);
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+  return text;
+}
+
+function appendToken(container, token) {
+  const cursor = container.querySelector(".cursor");
+  if (cursor) {
+    // Insert text before cursor
+    const textNode = document.createTextNode(token);
+    container.insertBefore(textNode, cursor);
+  } else {
+    container.insertAdjacentText("beforeend", token);
+  }
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function removeCursor() {
+  const c = document.getElementById("live-cursor");
+  if (c) c.remove();
+}
+
+/* =========================================================
+   Live indicators
+   ========================================================= */
+const indTtft = document.getElementById("ind-ttft");
+const indTps  = document.getElementById("ind-tps");
+
+function showTTFT(ms) {
+  indTtft.textContent = `First token: ${fmt(ms, 0)}ms`;
+  indTtft.classList.add("visible");
+}
+
+function updateTPS(toks, elapsedMs) {
+  if (elapsedMs < 10) return;
+  const tps = (toks / (elapsedMs / 1000)).toFixed(1);
+  indTps.textContent = `${tps} tok/s`;
+  indTps.style.opacity = "1";
+}
+
+function resetIndicators() {
+  indTtft.classList.remove("visible");
+  indTtft.textContent = "First token: —";
+  indTps.style.opacity = "0";
+  indTps.textContent = "tok/s: —";
+}
+
+/* =========================================================
+   WebSocket management
+   ========================================================= */
+const dot = document.getElementById("status-dot");
+
+function setDot(state) {
+  dot.className = "status-dot " + (state || "");
+}
+
+function sendPrompt(prompt) {
+  if (isGenerating) return;
+  const maxToks = parseInt(document.getElementById("max-tokens").value) || 128;
+
+  const payload = {
+    prompt,
+    model: selectedModel,
+    priority: selectedPriority,
+    max_tokens: maxToks,
+  };
+
+  isGenerating = true;
+  tokenCount = 0;
+  ttftShown = false;
+  generationStart = performance.now();
+  document.getElementById("send-btn").disabled = true;
+
+  resetIndicators();
+  addTermLine("→", prompt, "user");
+  currentReplyEl = addResponseContainer();
+
+  // Open a fresh WS connection for each request
+  const wsUrl = `${WS_BASE}/ws/generate`;
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    setDot("connected");
+    ws.send(JSON.stringify(payload));
+  };
+
+  ws.onmessage = (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+
+    if (msg.error) {
+      removeCursor();
+      addTermLine("!", msg.error, "error");
+      finishGeneration();
+      return;
+    }
+
+    if (msg.is_final) {
+      removeCursor();
+      const elapsed = performance.now() - generationStart;
+      const tps = (tokenCount / (elapsed / 1000)).toFixed(1);
+      addTermLine(
+        "#",
+        `Done — ${tokenCount} tokens · ${fmt(elapsed, 0)}ms · ${tps} tok/s · session: ${(msg.session_id||"").slice(0,12)}`,
+        "system"
+      );
+      finishGeneration();
+      return;
+    }
+
+    if (msg.token) {
+      appendToken(currentReplyEl, msg.token);
+      tokenCount++;
+
+      if (!ttftShown && msg.ttft_ms != null) {
+        showTTFT(msg.ttft_ms);
+        ttftShown = true;
+      }
+
+      if (msg.elapsed_ms) updateTPS(tokenCount, msg.elapsed_ms);
+    }
+  };
+
+  ws.onerror = () => {
+    setDot("error");
+    removeCursor();
+    addTermLine("!", "WebSocket error — is the backend running on port 8001?", "error");
+    finishGeneration();
+  };
+
+  ws.onclose = () => {
+    if (isGenerating) {
+      removeCursor();
+      finishGeneration();
+    }
+    setDot("");
+  };
+}
+
+function finishGeneration() {
+  isGenerating = false;
+  document.getElementById("send-btn").disabled = false;
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+}
+
+/* =========================================================
+   Controls wiring
+   ========================================================= */
+// Model buttons
+document.querySelectorAll(".model-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".model-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedModel = btn.dataset.model;
+  });
+});
+
+// Priority tabs
+document.querySelectorAll(".prio-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".prio-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    selectedPriority = tab.dataset.p;
+  });
+});
+
+// Send
+const promptInput = document.getElementById("prompt-input");
+const sendBtn     = document.getElementById("send-btn");
+
+function doSend() {
+  const val = promptInput.value.trim();
+  if (!val || isGenerating) return;
+  promptInput.value = "";
+  sendPrompt(val);
+}
+
+sendBtn.addEventListener("click", doSend);
+promptInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); }
+});
+
+/* =========================================================
+   Metrics polling
+   ========================================================= */
+async function fetchJSON(url) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(3000) });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function colorClass(val, warnThresh, critThresh) {
+  if (val >= critThresh) return "crit";
+  if (val >= warnThresh) return "warn";
+  return "good";
+}
+
+function updateMetrics(summary) {
+  // VRAM
+  const usedMB  = summary.vram_used_mb  || 0;
+  const totalMB = summary.vram_total_mb || 80000;
+  const pct     = Math.min((usedMB / totalMB) * 100, 100);
+  document.getElementById("vram-text").textContent =
+    `${fmtLarge(Math.round(usedMB))} / ${fmtLarge(totalMB)} MB`;
+  document.getElementById("vram-total-label").textContent = `${fmtLarge(totalMB)} MB`;
+  const fill = document.getElementById("vram-fill");
+  fill.style.width = pct.toFixed(1) + "%";
+  fill.style.background = pct > 85 ? "var(--coral)" : pct > 65 ? "var(--orange)" : "var(--green)";
+
+  // Active sessions
+  const as = summary.active_sessions || 0;
+  const asEl = document.getElementById("active-sessions");
+  asEl.textContent = as;
+  asEl.className = "tape-value " + colorClass(as, 4, 7);
+
+  // Pages free
+  document.getElementById("pages-free").textContent = fmtLarge(summary.pages_free || 0);
+
+  // Queue
+  const qd = summary.queue_depth || 0;
+  document.getElementById("queue-depth-val").textContent = qd;
+  document.getElementById("queue-count").textContent = qd;
+  document.getElementById("queue-bar-fill").style.width =
+    Math.min((qd / MAX_QUEUE) * 100, 100).toFixed(1) + "%";
+
+  // Throughput
+  const tps = summary.tokens_per_sec || 0;
+  const tpsEl = document.getElementById("tps-val");
+  tpsEl.textContent = `${fmt(tps)} tok/s`;
+  tpsEl.className = "tape-value " + (tps > 0 ? "good" : "");
+
+  // TTFT percentiles
+  document.getElementById("ttft-p50").textContent = fmt(summary.ttft_p50_ms) + " ms";
+  document.getElementById("ttft-p95").textContent = fmt(summary.ttft_p95_ms) + " ms";
+  document.getElementById("ttft-p99").textContent = fmt(summary.ttft_p99_ms) + " ms";
+
+  // Batch / totals
+  document.getElementById("avg-batch").textContent = fmt(summary.avg_batch_size, 2);
+  document.getElementById("total-req").textContent = fmtLarge(summary.total_requests || 0);
+  document.getElementById("total-tok").textContent = fmtLarge(summary.total_tokens || 0);
+
+  // Uptime
+  const up = summary.uptime_seconds || 0;
+  const h = Math.floor(up / 3600);
+  const m = Math.floor((up % 3600) / 60);
+  const s = Math.floor(up % 60);
+  document.getElementById("uptime-text").textContent =
+    `uptime ${h}h ${m}m ${s}s`;
+}
+
+function updateSessionLog(sessions) {
+  const el = document.getElementById("session-log");
+  if (!sessions || sessions.length === 0) return;
+  el.innerHTML = "";
+  sessions.forEach(s => {
+    const item = document.createElement("div");
+    item.className = "session-item";
+    item.innerHTML = `
+      <span class="session-id-text">${s.session_id || "—"}</span>
+      <span class="session-model-tag">${s.model || "—"}</span>
+      <span class="session-stats">${s.tokens || 0} tok · ${fmt(s.ttft_ms)}ms TTFT · ${fmt(s.tokens_per_sec)} tok/s</span>
+    `;
+    el.appendChild(item);
+  });
+}
+
+/* =========================================================
+   Canvas chart — hand-drawn feel
+   ========================================================= */
+const canvas = document.getElementById("throughput-canvas");
+const ctx    = canvas.getContext("2d");
+
+// Resize canvas to device pixel ratio
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+function drawChart(history) {
+  const w   = canvas.getBoundingClientRect().width;
+  const h   = canvas.getBoundingClientRect().height;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, w * dpr, h * dpr);
+
+  // Background
+  ctx.fillStyle = "#28282A";
+  roundRect(ctx, 0, 0, w, h, 4);
+  ctx.fill();
+
+  if (!history || history.length === 0) return;
+
+  // Build ordered array [oldest → newest], length 61 (ages 60..0)
+  const vals = history.map(d => d.tokens || 0);
+  const maxVal = Math.max(...vals, 1);
+
+  const padL = 6, padR = 6, padT = 8, padB = 8;
+  const cw = w - padL - padR;
+  const ch = h - padT - padB;
+  const n  = vals.length;
+
+  // Grid lines
+  ctx.strokeStyle = "rgba(255,255,255,0.04)";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (ch / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(w - padR, y);
+    ctx.stroke();
+  }
+
+  // Build points with tiny random noise (hand-drawn feel)
+  const rng = mulberry32(42);
+  const points = vals.map((v, i) => ({
+    x: padL + (i / (n - 1)) * cw,
+    y: padT + ch - (v / maxVal) * ch + (rng() - 0.5) * 1.2,
+  }));
+
+  // Fill under the line
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+  grad.addColorStop(0, "rgba(74,222,128,0.25)");
+  grad.addColorStop(1, "rgba(74,222,128,0.02)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, padT + ch);
+  ctx.lineTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    // Slightly jittered line segments instead of smooth bezier
+    const px = points[i - 1];
+    const cx_ = points[i];
+    const jitter = (rng() - 0.5) * 0.8;
+    ctx.lineTo(cx_.x + jitter, cx_.y + jitter);
+  }
+  ctx.lineTo(points[points.length - 1].x, padT + ch);
+  ctx.closePath();
+  ctx.fill();
+
+  // Stroke line
+  ctx.strokeStyle = "#4ADE80";
+  ctx.lineWidth = 1.4;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const jitter = (rng() - 0.5) * 0.6;
+    ctx.lineTo(points[i].x + jitter, points[i].y + jitter);
+  }
+  ctx.stroke();
+
+  // Current value label
+  const lastVal = vals[vals.length - 1];
+  if (lastVal > 0) {
+    ctx.fillStyle = "rgba(74,222,128,0.9)";
+    ctx.font = `bold 9px ${getComputedStyle(document.body).fontFamily}`;
+    ctx.textAlign = "right";
+    ctx.fillText(lastVal + " tok", w - padR - 2, padT + 10);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Deterministic RNG for consistent jitter on each draw
+function mulberry32(seed) {
+  let s = seed;
+  return function() {
+    s |= 0; s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* =========================================================
+   Polling loop
+   ========================================================= */
+async function pollMetrics() {
+  try {
+    const [summary, sessLog, thrHistory] = await Promise.allSettled([
+      fetchJSON(`${API_BASE}/api/metrics/summary`),
+      fetchJSON(`${API_BASE}/api/sessions/log`),
+      fetchJSON(`${API_BASE}/api/throughput/history`),
+    ]);
+
+    if (summary.status === "fulfilled") updateMetrics(summary.value);
+    if (sessLog.status === "fulfilled" && sessLog.value.sessions)
+      updateSessionLog(sessLog.value.sessions);
+    if (thrHistory.status === "fulfilled" && thrHistory.value.history) {
+      throughputHistory = thrHistory.value.history;
+      drawChart(throughputHistory);
+    }
+  } catch (_) {
+    // Backend not reachable — fail silently
+  }
+}
+
+// Initial check
+(async () => {
+  try {
+    await fetchJSON(`${API_BASE}/api/health`);
+    addTermLine("#", "Backend connected ✓", "system");
+    setDot("connected");
+  } catch {
+    addTermLine("!", "Cannot reach backend — start the engine on port 8001", "error");
+    setDot("error");
+  }
+  pollMetrics();
+  setInterval(pollMetrics, POLL_MS);
+})();
+</script>
+</body>
+</html>
