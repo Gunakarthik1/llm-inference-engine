@@ -353,17 +353,17 @@
       border-color: rgba(255,255,255,0.2);
       color: rgba(255,255,255,0.5);
     }
-    .prio-pill.active[data-p="HIGH"] {
+    .prio-pill.active[data-p="high"] {
       border-color: rgba(239,68,68,0.4);
       background: rgba(239,68,68,0.1);
       color: #F87171;
     }
-    .prio-pill.active[data-p="NORMAL"] {
+    .prio-pill.active[data-p="normal"] {
       border-color: rgba(8,145,178,0.4);
       background: var(--accent-light);
       color: var(--accent);
     }
-    .prio-pill.active[data-p="LOW"] {
+    .prio-pill.active[data-p="low"] {
       border-color: rgba(255,255,255,0.18);
       background: rgba(255,255,255,0.06);
       color: rgba(255,255,255,0.5);
@@ -719,9 +719,9 @@
         <div class="input-bottom-row">
           <span class="priority-label">Priority</span>
           <div class="priority-pills">
-            <div class="prio-pill" data-p="HIGH">Rush</div>
-            <div class="prio-pill active" data-p="NORMAL">Normal</div>
-            <div class="prio-pill" data-p="LOW">Background</div>
+            <div class="prio-pill" data-p="high">Rush</div>
+            <div class="prio-pill active" data-p="normal">Normal</div>
+            <div class="prio-pill" data-p="low">Background</div>
           </div>
           <div class="max-tokens-wrap">
             <span class="max-tokens-label">Max tokens</span>
@@ -839,7 +839,7 @@ const MAX_QUEUE = 20;
 /* =========================================================
    State
    ========================================================= */
-let selectedPriority = "NORMAL";
+let selectedPriority = "normal";
 let ws               = null;
 let isGenerating     = false;
 let throughputHistory = [];
