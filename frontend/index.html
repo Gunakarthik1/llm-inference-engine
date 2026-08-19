@@ -10,10 +10,10 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #000000;
-      --bg2:       #0a0a0a;
-      --bg3:       #111111;
-      --bg4:       #1a1a1a;
+      --bg:        #242020;
+      --bg2:       #1e1b1b;
+      --bg3:       #1e1b1b;
+      --bg4:       #2a2626;
       --border:    rgba(255,255,255,0.08);
       --green:     #00ff88;
       --green-dim: rgba(0,255,136,0.15);
@@ -21,8 +21,8 @@
       --blue-dim:  rgba(59,130,246,0.15);
       --yellow:    #f59e0b;
       --red:       #ef4444;
-      --text:      rgba(255,255,255,0.9);
-      --text2:     rgba(255,255,255,0.55);
+      --text:      #f0ece8;
+      --text2:     #a09890;
       --text3:     rgba(255,255,255,0.3);
       --mono:      'JetBrains Mono', monospace;
       --sans:      'Nunito', 'Inter', system-ui, sans-serif;
@@ -33,7 +33,11 @@
     }
 
     html, body {
-      background: var(--bg);
+      background-color: #242020;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 30px 30px;
       color: var(--text);
       font-family: var(--sans);
       font-size: 13px;
@@ -62,7 +66,7 @@
       justify-content: space-between;
       padding: 14px 24px;
       border-bottom: 1px solid var(--border);
-      background: var(--bg2);
+      background: #1e1b1b;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -130,7 +134,7 @@
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       border-bottom: 1px solid var(--border);
-      background: var(--bg2);
+      background: #1e1b1b;
     }
     .metric-card {
       padding: 16px 20px;
@@ -209,12 +213,27 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: #1e1b1b;
+      position: relative;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s cubic-bezier(0.16,1,0.3,1);
     }
     .panel:last-child { border-right: none; }
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #7b5ea7, #c85878, #e8836a, #d4a64a, #c8b84a);
+      z-index: 1;
+    }
+    .panel:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
     .panel-header {
       padding: 12px 16px;
       border-bottom: 1px solid var(--border);
-      background: var(--bg2);
+      background: #1e1b1b;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -240,7 +259,7 @@
 
     /* ── LEFT: Generation Terminal ── */
     .gen-panel {
-      background: var(--bg2);
+      background: #1e1b1b;
     }
     .gen-panel .panel-content {
       flex: 1;
@@ -353,13 +372,14 @@
       padding: 11px;
       border-radius: 50rem;
       border: none;
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      color: #fff;
+      background: linear-gradient(135deg, #f09060, #fbb485);
+      color: #1a0e08;
       font-family: var(--mono);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 900;
       cursor: pointer;
       letter-spacing: 0.04em;
+      box-shadow: 0 4px 20px rgba(240,144,96,0.35);
       transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s cubic-bezier(0.16,1,0.3,1), background 0.15s;
       position: relative;
       overflow: hidden;
@@ -371,9 +391,8 @@
       background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
     }
     .generate-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,255,136,0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 32px rgba(240,144,96,0.45);
     }
     .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
@@ -429,7 +448,7 @@
 
     /* ── CENTER: KV Cache Grid ── */
     .cache-panel {
-      background: var(--bg);
+      background: #1e1b1b;
       align-items: center;
     }
     .cache-panel .panel-content {
@@ -500,7 +519,7 @@
       max-width: 340px;
     }
     .cache-stat {
-      background: var(--bg2);
+      background: #1e1b1b;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px 14px;
@@ -521,7 +540,7 @@
 
     /* ── RIGHT: Stress Test ── */
     .stress-panel {
-      background: var(--bg2);
+      background: #1e1b1b;
     }
     .stress-panel .panel-content {
       flex: 1;
@@ -606,7 +625,7 @@
     /* ── Bottom chart ── */
     .chart-section {
       border-top: 1px solid var(--border);
-      background: var(--bg2);
+      background: #1e1b1b;
       padding: 16px 24px 20px;
       flex-shrink: 0;
     }
@@ -686,6 +705,24 @@
       </div>
     </div>
   </header>
+
+  <!-- ══ RAINBOW STRIPE ══ -->
+  <div style="position:relative;height:110px;overflow:hidden;pointer-events:none;" aria-hidden="true">
+    <svg viewBox="0 0 1440 110" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="position:absolute;bottom:0;left:0;width:100%;height:auto;">
+      <path d="M-100,70 C200,10 500,100 800,50 C1100,0 1300,80 1540,40" fill="none" stroke="#7b5ea7" stroke-width="18" stroke-linecap="round" opacity="0.55"/>
+      <path d="M-100,82 C200,22 500,112 800,62 C1100,12 1300,92 1540,52" fill="none" stroke="#c85878" stroke-width="15" stroke-linecap="round" opacity="0.5"/>
+      <path d="M-100,94 C200,34 500,124 800,74 C1100,24 1300,104 1540,64" fill="none" stroke="#e8836a" stroke-width="13" stroke-linecap="round" opacity="0.45"/>
+      <path d="M-100,106 C200,46 500,136 800,86 C1100,36 1300,116 1540,76" fill="none" stroke="#d4a64a" stroke-width="11" stroke-linecap="round" opacity="0.4"/>
+      <path d="M-100,118 C200,58 500,148 800,98 C1100,48 1300,128 1540,88" fill="none" stroke="#c8b84a" stroke-width="9" stroke-linecap="round" opacity="0.35"/>
+    </svg>
+  </div>
+
+  <!-- ══ HERO ══ -->
+  <div style="max-width:1400px;margin:0 auto;padding:40px 24px 16px;">
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#f09060;margin-bottom:10px;">LLM Inference Engine</div>
+    <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#f0ece8;line-height:1.15;letter-spacing:-0.03em;margin-bottom:12px;">PagedAttention KV-cache.<br>Continuous batching. Real-time metrics.</h1>
+    <p style="font-size:15px;color:#a09890;max-width:540px;font-weight:500;">High-throughput serving engine with p50/p95/p99 TTFT tracking and a live WebSocket dashboard — no GPU required.</p>
+  </div>
 
   <!-- ══ EXPLAINER BANNER ══ -->
   <div class="reveal" style="max-width:1400px; margin: 0 auto 0; padding: 12px 24px;">
