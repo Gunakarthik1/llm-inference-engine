@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LLM Inference Engine</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,7 +25,11 @@
       --text2:     rgba(255,255,255,0.55);
       --text3:     rgba(255,255,255,0.3);
       --mono:      'JetBrains Mono', monospace;
-      --sans:      'Inter', system-ui, sans-serif;
+      --sans:      'Nunito', 'Inter', system-ui, sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     html, body {
@@ -130,8 +135,13 @@
     .metric-card {
       padding: 16px 20px;
       border-right: 1px solid var(--border);
+      border-radius: 1.25rem;
       position: relative;
       overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    .metric-card:hover {
+      transform: translateY(-4px);
     }
     .metric-card:last-child { border-right: none; }
     .metric-label {
@@ -195,6 +205,7 @@
     /* ── Panel base ── */
     .panel {
       border-right: 1px solid var(--border);
+      border-radius: 1.5rem;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -311,7 +322,7 @@
     .priority-tabs {
       display: flex;
       background: var(--bg3);
-      border-radius: 8px;
+      border-radius: 50rem;
       padding: 3px;
       gap: 2px;
       border: 1px solid var(--border);
@@ -319,7 +330,7 @@
     .prio-tab {
       flex: 1;
       padding: 5px 8px;
-      border-radius: 6px;
+      border-radius: 50rem;
       border: none;
       background: transparent;
       color: var(--text3);
@@ -340,7 +351,7 @@
     .generate-btn {
       width: 100%;
       padding: 11px;
-      border-radius: 8px;
+      border-radius: 50rem;
       border: none;
       background: linear-gradient(135deg, #7c3aed, #4f46e5);
       color: #fff;
@@ -349,7 +360,7 @@
       font-weight: 700;
       cursor: pointer;
       letter-spacing: 0.04em;
-      transition: all 0.15s;
+      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s cubic-bezier(0.16,1,0.3,1), background 0.15s;
       position: relative;
       overflow: hidden;
     }
@@ -361,8 +372,8 @@
     }
     .generate-btn:hover:not(:disabled) {
       background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,255,136,0.25);
     }
     .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
@@ -440,7 +451,7 @@
       width: 20px; height: 20px;
       border-radius: 4px;
       background: var(--bg4);
-      transition: background 0.3s, box-shadow 0.3s;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
     .kv-block.occupied {
       background: var(--blue);
@@ -564,6 +575,7 @@
       border-bottom: 1px solid rgba(255,255,255,0.04);
       vertical-align: middle;
     }
+    .stress-row { transition: background-color 0.4s ease; }
     .stress-row.pending td { color: var(--text3); }
     .stress-row.streaming td { color: var(--blue); }
     .stress-row.streaming td:first-child { animation: blink-row 1s ease-in-out infinite; }
@@ -642,6 +654,17 @@
       .main-grid { grid-template-columns: 1fr; }
       .stress-panel { display: none; }
     }
+
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -665,7 +688,7 @@
   </header>
 
   <!-- ══ EXPLAINER BANNER ══ -->
-  <div style="max-width:1400px; margin: 0 auto 0; padding: 12px 24px;">
+  <div class="reveal" style="max-width:1400px; margin: 0 auto 0; padding: 12px 24px;">
     <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 20px; display:flex; gap:32px; flex-wrap:wrap;">
       <div style="flex:1; min-width:200px;">
         <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:#00ff88; text-transform:uppercase; margin-bottom:4px;">⚡ Generation Terminal</div>
@@ -682,34 +705,41 @@
     </div>
   </div>
 
+  <!-- ══ WAVE DIVIDER ══ -->
+  <div style="line-height:0;">
+    <svg viewBox="0 0 1440 30" preserveAspectRatio="none" style="display:block;width:100%;height:30px;opacity:0.15;">
+      <path d="M0,15 C480,30 960,0 1440,15 L1440,30 L0,30 Z" fill="#00ff88"/>
+    </svg>
+  </div>
+
   <!-- ══ TOP METRICS ROW ══ -->
   <div class="metrics-row">
-    <div class="metric-card" id="mc-throughput">
+    <div class="metric-card reveal" id="mc-throughput" style="transition-delay:0ms">
       <div class="metric-label">Throughput</div>
       <div class="metric-value" id="m-throughput">0<span class="unit">tok/s</span></div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-throughput" style="width:0%"></div></div>
     </div>
-    <div class="metric-card blue" id="mc-ttft">
+    <div class="metric-card blue reveal" id="mc-ttft" style="transition-delay:60ms">
       <div class="metric-label">Avg TTFT</div>
       <div class="metric-value" id="m-ttft">—<span class="unit">ms</span></div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-ttft" style="width:0%"></div></div>
     </div>
-    <div class="metric-card" id="mc-sessions">
+    <div class="metric-card reveal" id="mc-sessions" style="transition-delay:120ms">
       <div class="metric-label">Active Sessions</div>
       <div class="metric-value" id="m-sessions">0</div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-sessions" style="width:0%"></div></div>
     </div>
-    <div class="metric-card yellow" id="mc-queue">
+    <div class="metric-card yellow reveal" id="mc-queue" style="transition-delay:180ms">
       <div class="metric-label">Queue Depth</div>
       <div class="metric-value" id="m-queue">0</div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-queue" style="width:0%;background:var(--yellow)"></div></div>
     </div>
-    <div class="metric-card blue" id="mc-gpu">
+    <div class="metric-card blue reveal" id="mc-gpu" style="transition-delay:240ms">
       <div class="metric-label">GPU Utilization</div>
       <div class="metric-value" id="m-gpu">0<span class="unit">%</span></div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-gpu" style="width:0%"></div></div>
     </div>
-    <div class="metric-card" id="mc-efficiency">
+    <div class="metric-card reveal" id="mc-efficiency" style="transition-delay:300ms">
       <div class="metric-label">Batch Efficiency</div>
       <div class="metric-value" id="m-efficiency">0<span class="unit">%</span></div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-efficiency" style="width:0%"></div></div>
@@ -720,7 +750,7 @@
   <div class="main-grid">
 
     <!-- LEFT: Generation Terminal -->
-    <div class="panel gen-panel">
+    <div class="panel gen-panel reveal">
       <div class="panel-header">
         <span class="panel-title">Generation Terminal</span>
         <span class="panel-badge" id="gen-session-badge">idle</span>
@@ -770,7 +800,7 @@
     </div>
 
     <!-- CENTER: KV Cache Grid -->
-    <div class="panel cache-panel">
+    <div class="panel cache-panel reveal">
       <div class="panel-header">
         <span class="panel-title">KV Cache Memory</span>
         <span class="panel-badge" id="kv-badge">0/64 pages</span>
@@ -821,7 +851,7 @@
     </div>
 
     <!-- RIGHT: Stress Test -->
-    <div class="panel stress-panel">
+    <div class="panel stress-panel reveal">
       <div class="panel-header">
         <span class="panel-title">Stress Test</span>
         <span class="panel-badge" id="stress-badge">ready</span>
@@ -857,7 +887,7 @@
   </div><!-- /main-grid -->
 
   <!-- ══ BOTTOM CHART ══ -->
-  <div class="chart-section">
+  <div class="chart-section reveal">
     <div class="chart-header">
       <span class="chart-title">Throughput History — 60s rolling window</span>
       <div class="chart-live">
@@ -1397,6 +1427,21 @@ async function pollMetrics() {
     }
   } catch (_) {}
 }
+
+/* ================================================================
+   SCROLL REVEAL
+   ================================================================ */
+(function initReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
 
 /* ================================================================
    BOOT
