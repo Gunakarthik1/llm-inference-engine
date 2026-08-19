@@ -10,7 +10,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #242020;
+      --bg:        #101a14;
       --bg2:       #1e1b1b;
       --bg3:       #1e1b1b;
       --bg4:       #2a2626;
@@ -33,10 +33,10 @@
     }
 
     html, body {
-      background-color: #242020;
+      background-color: #101a14;
       background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+        linear-gradient(rgba(52,211,153,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(52,211,153,0.02) 1px, transparent 1px);
       background-size: 30px 30px;
       color: var(--text);
       font-family: var(--sans);
@@ -223,7 +223,7 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 3px;
-      background: linear-gradient(90deg, #7b5ea7, #c85878, #e8836a, #d4a64a, #c8b84a);
+      background: linear-gradient(90deg, #064e3b, #059669, #10b981, #34d399, #6ee7b7);
       z-index: 1;
     }
     .panel:hover {
@@ -372,14 +372,14 @@
       padding: 11px;
       border-radius: 50rem;
       border: none;
-      background: linear-gradient(135deg, #f09060, #fbb485);
-      color: #1a0e08;
+      background: linear-gradient(135deg, #059669, #34d399);
+      color: #021a0e;
       font-family: var(--mono);
       font-size: 13px;
       font-weight: 900;
       cursor: pointer;
       letter-spacing: 0.04em;
-      box-shadow: 0 4px 20px rgba(240,144,96,0.35);
+      box-shadow: 0 4px 20px rgba(5,150,105,0.4);
       transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s cubic-bezier(0.16,1,0.3,1), background 0.15s;
       position: relative;
       overflow: hidden;
@@ -392,7 +392,7 @@
     }
     .generate-btn:hover:not(:disabled) {
       transform: translateY(-3px);
-      box-shadow: 0 10px 32px rgba(240,144,96,0.45);
+      box-shadow: 0 10px 32px rgba(52,211,153,0.5);
     }
     .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
@@ -709,17 +709,17 @@
   <!-- ══ RAINBOW STRIPE ══ -->
   <div style="position:relative;height:110px;overflow:hidden;pointer-events:none;" aria-hidden="true">
     <svg viewBox="0 0 1440 110" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="position:absolute;bottom:0;left:0;width:100%;height:auto;">
-      <path d="M-100,70 C200,10 500,100 800,50 C1100,0 1300,80 1540,40" fill="none" stroke="#7b5ea7" stroke-width="18" stroke-linecap="round" opacity="0.55"/>
-      <path d="M-100,82 C200,22 500,112 800,62 C1100,12 1300,92 1540,52" fill="none" stroke="#c85878" stroke-width="15" stroke-linecap="round" opacity="0.5"/>
-      <path d="M-100,94 C200,34 500,124 800,74 C1100,24 1300,104 1540,64" fill="none" stroke="#e8836a" stroke-width="13" stroke-linecap="round" opacity="0.45"/>
-      <path d="M-100,106 C200,46 500,136 800,86 C1100,36 1300,116 1540,76" fill="none" stroke="#d4a64a" stroke-width="11" stroke-linecap="round" opacity="0.4"/>
-      <path d="M-100,118 C200,58 500,148 800,98 C1100,48 1300,128 1540,88" fill="none" stroke="#c8b84a" stroke-width="9" stroke-linecap="round" opacity="0.35"/>
+      <path d="M-100,70 C200,10 500,100 800,50 C1100,0 1300,80 1540,40" fill="none" stroke="#064e3b" stroke-width="18" stroke-linecap="round" opacity="0.65"/>
+      <path d="M-100,82 C200,22 500,112 800,62 C1100,12 1300,92 1540,52" fill="none" stroke="#059669" stroke-width="15" stroke-linecap="round" opacity="0.6"/>
+      <path d="M-100,94 C200,34 500,124 800,74 C1100,24 1300,104 1540,64" fill="none" stroke="#10b981" stroke-width="13" stroke-linecap="round" opacity="0.55"/>
+      <path d="M-100,106 C200,46 500,136 800,86 C1100,36 1300,116 1540,76" fill="none" stroke="#34d399" stroke-width="11" stroke-linecap="round" opacity="0.5"/>
+      <path d="M-100,118 C200,58 500,148 800,98 C1100,48 1300,128 1540,88" fill="none" stroke="#6ee7b7" stroke-width="9" stroke-linecap="round" opacity="0.45"/>
     </svg>
   </div>
 
   <!-- ══ HERO ══ -->
   <div style="max-width:1400px;margin:0 auto;padding:40px 24px 16px;">
-    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#f09060;margin-bottom:10px;">LLM Inference Engine</div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#34d399;margin-bottom:10px;">LLM Inference Engine</div>
     <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#f0ece8;line-height:1.15;letter-spacing:-0.03em;margin-bottom:12px;">PagedAttention KV-cache.<br>Continuous batching. Real-time metrics.</h1>
     <p style="font-size:15px;color:#a09890;max-width:540px;font-weight:500;">High-throughput serving engine with p50/p95/p99 TTFT tracking and a live WebSocket dashboard — no GPU required.</p>
   </div>
@@ -736,7 +736,7 @@
         <div style="font-size:12px; color:#64748b; line-height:1.5;">Each block = a 16-token memory page. As the model generates text, pages fill up (blue = in use). When done, they free up (gray). This is how real LLM servers like vLLM manage GPU memory without wasting it.</div>
       </div>
       <div style="flex:1; min-width:200px;">
-        <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:#f97316; text-transform:uppercase; margin-bottom:4px;">🔥 Stress Test</div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:rgba(16,185,129,1); text-transform:uppercase; margin-bottom:4px;">🔥 Stress Test</div>
         <div style="font-size:12px; color:#64748b; line-height:1.5;">Fires 10 requests simultaneously to test how the scheduler handles concurrency. Watch the queue fill, requests get batched, and metrics like TTFT and throughput respond in real time.</div>
       </div>
     </div>
