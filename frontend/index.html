@@ -3,939 +3,1015 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LLM Inference Engine</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
+  <title>LLM Inference Engine — Terminal Control Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
     :root {
-      --bg:        #101a14;
-      --bg2:       #1e1b1b;
-      --bg3:       #1e1b1b;
-      --bg4:       #2a2626;
-      --border:    rgba(255,255,255,0.08);
-      --green:     #00ff88;
-      --green-dim: rgba(0,255,136,0.15);
-      --blue:      #3b82f6;
-      --blue-dim:  rgba(59,130,246,0.15);
-      --yellow:    #f59e0b;
-      --red:       #ef4444;
-      --text:      #f0ece8;
-      --text2:     #a09890;
-      --text3:     rgba(255,255,255,0.3);
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Nunito', 'Inter', system-ui, sans-serif;
+      --bg: #101a14;
+      --card: #152018;
+      --border: rgba(5,150,105,0.2);
+      --accent: #059669;
+      --accent-end: #34d399;
+      --ink: #e8fff4;
+      --muted: #52a87c;
+      --terminal: #34d399;
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body {
-      background-color: #101a14;
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
       background-image:
-        linear-gradient(rgba(52,211,153,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(52,211,153,0.02) 1px, transparent 1px);
+        linear-gradient(rgba(5,150,105,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(5,150,105,0.025) 1px, transparent 1px);
       background-size: 30px 30px;
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 13px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
+      font-family: 'Nunito', sans-serif;
+      color: var(--ink);
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Scrollbars ── */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb { background: rgba(5,150,105,0.3); border-radius: 2px; }
 
-    /* ── Layout ── */
-    .layout {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    /* ── Header ── */
-    .header {
+    /* ════════════════════════════════════════
+       SYSTEM HEADER
+    ════════════════════════════════════════ */
+    .sys-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 14px 24px;
+      padding: 14px 32px;
+      gap: 16px;
       border-bottom: 1px solid var(--border);
-      background: #1e1b1b;
+      background: rgba(16,26,20,0.97);
+      backdrop-filter: blur(12px);
       position: sticky;
       top: 0;
       z-index: 100;
     }
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .header-logo {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg, var(--green), var(--blue));
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-weight: 700;
-      font-size: 12px;
-      color: #000;
-    }
-    .header-title {
-      font-family: var(--mono);
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--text);
-      letter-spacing: -0.02em;
-    }
-    .header-sub {
-      font-size: 11px;
-      color: var(--text3);
-      font-family: var(--mono);
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .ws-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text3);
-      background: var(--bg3);
-      transition: all 0.3s;
-    }
-    .ws-status.connected { border-color: rgba(0,255,136,0.3); color: var(--green); background: var(--green-dim); }
-    .ws-status.error { border-color: rgba(239,68,68,0.3); color: var(--red); background: rgba(239,68,68,0.1); }
-    .ws-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: currentColor;
+
+    .sys-logo-mark {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #059669, #34d399);
+      display: flex; align-items: center; justify-content: center;
+      font: 700 14px 'JetBrains Mono';
+      color: #011a0e;
       flex-shrink: 0;
     }
-    .ws-status.connected .ws-dot { animation: pulse-dot 2s ease-in-out infinite; }
-    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-    /* ── Top metrics row ── */
-    .metrics-row {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      border-bottom: 1px solid var(--border);
-      background: #1e1b1b;
-    }
-    .metric-card {
-      padding: 16px 20px;
-      border-right: 1px solid var(--border);
-      border-radius: 1.25rem;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
-    }
-    .metric-card:hover {
-      transform: translateY(-4px);
-    }
-    .metric-card:last-child { border-right: none; }
-    .metric-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text3);
-      margin-bottom: 6px;
-    }
-    .metric-value {
-      font-family: var(--mono);
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--green);
-      letter-spacing: -0.03em;
-      line-height: 1;
-      transition: color 0.3s;
-    }
-    .metric-value .unit {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text3);
-      margin-left: 2px;
-    }
-    .metric-bar-wrap {
-      margin-top: 8px;
-      height: 3px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .metric-bar {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.6s ease;
-      background: var(--green);
-    }
-    .metric-card.blue .metric-value { color: var(--blue); }
-    .metric-card.blue .metric-bar { background: var(--blue); }
-    .metric-card.yellow .metric-value { color: var(--yellow); }
-    .metric-card.yellow .metric-bar { background: var(--yellow); }
-
-    /* animated glow on active */
-    .metric-card.active::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(0,255,136,0.04), transparent 60%);
-      pointer-events: none;
+    .sys-logo {
+      font: 900 18px 'Nunito';
+      background: linear-gradient(135deg, #059669, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.01em;
     }
 
-    /* ── Main grid ── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 380px 1fr 380px;
-      flex: 1;
-      min-height: 0;
+    .sys-sub {
+      font: 500 11px 'JetBrains Mono';
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      margin-top: 1px;
     }
 
-    /* ── Panel base ── */
-    .panel {
-      border-right: 1px solid var(--border);
-      border-radius: 1.5rem;
+    .sys-status {
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: #1e1b1b;
-      position: relative;
-      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s cubic-bezier(0.16,1,0.3,1);
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
     }
-    .panel:last-child { border-right: none; }
-    .panel::before {
+
+    .status-led {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+      animation: ledpulse 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .status-led.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: none; }
+
+    @keyframes ledpulse {
+      0%,100% { box-shadow: 0 0 8px #34d399; }
+      50%      { box-shadow: 0 0 16px #34d399, 0 0 28px rgba(52,211,153,0.3); }
+    }
+
+    .sys-status-text {
+      font: 700 11px 'JetBrains Mono';
+      color: var(--terminal);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .ws-badge {
+      padding: 4px 12px;
+      border-radius: 5px;
+      border: 1px solid rgba(5,150,105,0.35);
+      background: rgba(5,150,105,0.08);
+      font: 600 11px 'JetBrains Mono';
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      cursor: default;
+      transition: all 0.3s;
+    }
+    .ws-badge.connected {
+      border-color: rgba(52,211,153,0.4);
+      background: rgba(52,211,153,0.08);
+      color: var(--terminal);
+    }
+    .ws-badge.error {
+      border-color: rgba(239,68,68,0.4);
+      background: rgba(239,68,68,0.08);
+      color: #f87171;
+    }
+
+    /* ════════════════════════════════════════
+       PAGE SHELL
+    ════════════════════════════════════════ */
+    .page-shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 28px 40px;
+    }
+
+    /* ════════════════════════════════════════
+       LED METRICS STRIP
+    ════════════════════════════════════════ */
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 20px 0;
+    }
+
+    .led-display {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s;
+    }
+    .led-display:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(5,150,105,0.12);
+    }
+    .led-display::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #064e3b, #059669, #10b981, #34d399, #6ee7b7);
+      height: 2px;
+      background: linear-gradient(90deg, #059669, #34d399);
+    }
+
+    .led-label {
+      font: 700 9px 'JetBrains Mono';
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .led-value {
+      font: 600 26px 'JetBrains Mono';
+      color: var(--terminal);
+      line-height: 1;
+      text-shadow: 0 0 14px rgba(52,211,153,0.35);
+      letter-spacing: -0.02em;
+    }
+
+    .led-unit {
+      font: 500 11px 'JetBrains Mono';
+      color: var(--muted);
+      margin-left: 3px;
+    }
+
+    .led-mini-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 28px;
+      margin-top: 10px;
+    }
+
+    .led-bar {
+      flex: 1;
+      background: rgba(52,211,153,0.18);
+      border-radius: 2px 2px 0 0;
+      min-height: 3px;
+      transition: height 0.5s ease;
+    }
+    .led-bar.peak { background: rgba(52,211,153,0.6); }
+    .led-bar.hi   { background: #34d399; }
+
+    .led-sublabel {
+      font: 500 10px 'JetBrains Mono';
+      color: rgba(82,168,124,0.5);
+      margin-top: 4px;
+    }
+
+    /* GPU bar variant */
+    .gpu-bar-wrap {
+      margin-top: 10px;
+      height: 5px;
+      background: rgba(5,150,105,0.12);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .gpu-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #059669, #34d399);
+      transition: width 0.6s ease;
+    }
+
+    /* ════════════════════════════════════════
+       MAIN GRID: KV + BATCH
+    ════════════════════════════════════════ */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 55% 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* Shared card base */
+    .ctrl-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+    .ctrl-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #059669, #34d399);
       z-index: 1;
     }
-    .panel:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-    }
-    .panel-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      background: #1e1b1b;
+
+    .ctrl-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ctrl-card-title {
+      font: 600 11px 'JetBrains Mono';
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .ctrl-card-meta {
+      font: 500 11px 'JetBrains Mono';
+      color: rgba(82,168,124,0.6);
+    }
+
+    /* ── KV Cache Visualizer ── */
+    .kv-body { padding: 18px 20px 20px; }
+
+    .kv-legend {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .kv-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font: 600 10px 'Nunito';
+      color: var(--muted);
+    }
+    .kv-legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 3px;
+    }
+
+    .kv-page {
+      height: 18px;
+      border-radius: 2px;
+      background: rgba(5,150,105,0.1);
+      border: 1px solid rgba(5,150,105,0.18);
+      transition: background 0.35s, box-shadow 0.35s, border-color 0.35s;
+      cursor: default;
+    }
+    .kv-page.used {
+      background: rgba(52,211,153,0.35);
+      border-color: rgba(52,211,153,0.5);
+    }
+    .kv-page.hot {
+      background: #34d399;
+      border-color: #34d399;
+      box-shadow: 0 0 7px rgba(52,211,153,0.55);
+    }
+    .kv-page.evicting {
+      background: rgba(251,191,36,0.4);
+      border-color: rgba(251,191,36,0.5);
+      animation: evict-pulse 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes evict-pulse {
+      from { opacity: 0.6; }
+      to   { opacity: 1; }
+    }
+
+    .kv-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 14px;
+      font: 500 11px 'JetBrains Mono';
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .kv-stats strong { color: var(--terminal); font-weight: 600; }
+
+    /* ── Batch Queue ── */
+    .batch-body {
+      overflow-y: auto;
+      max-height: 320px;
+    }
+
+    .batch-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 20px;
+      border-bottom: 1px solid rgba(5,150,105,0.06);
+      transition: background 0.2s;
+    }
+    .batch-row:hover { background: rgba(5,150,105,0.04); }
+    .batch-row:last-child { border-bottom: none; }
+
+    .batch-id {
+      font: 500 11px 'JetBrains Mono';
+      color: rgba(82,168,124,0.55);
+      width: 56px;
       flex-shrink: 0;
     }
-    .panel-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
+
+    .batch-status {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font: 700 9px 'JetBrains Mono';
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text3);
+      flex-shrink: 0;
     }
-    .panel-badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      background: var(--bg4);
-      border: 1px solid var(--border);
-      color: var(--text3);
+    .status-running {
+      background: rgba(52,211,153,0.12);
+      color: #34d399;
+      border: 1px solid rgba(52,211,153,0.28);
+    }
+    .status-queued {
+      background: rgba(251,191,36,0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.28);
+    }
+    .status-done {
+      background: rgba(139,92,246,0.12);
+      color: #a78bfa;
+      border: 1px solid rgba(139,92,246,0.28);
+    }
+    .status-error {
+      background: rgba(239,68,68,0.12);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,0.28);
     }
 
-    /* ── LEFT: Generation Terminal ── */
-    .gen-panel {
-      background: #1e1b1b;
-    }
-    .gen-panel .panel-content {
+    .batch-prompt {
+      font: 400 11px 'JetBrains Mono';
+      color: var(--muted);
       flex: 1;
-      overflow-y: auto;
-      padding: 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .batch-tokens {
+      font: 600 11px 'JetBrains Mono';
+      color: rgba(82,168,124,0.7);
+      flex-shrink: 0;
+    }
+
+    .batch-latency {
+      font: 700 11px 'JetBrains Mono';
+      color: var(--terminal);
+      flex-shrink: 0;
+      min-width: 48px;
+      text-align: right;
+    }
+
+    .batch-empty {
+      padding: 28px 20px;
+      font: 500 12px 'JetBrains Mono';
+      color: rgba(82,168,124,0.3);
+      text-align: center;
+    }
+
+    /* ════════════════════════════════════════
+       LATENCY HISTOGRAM
+    ════════════════════════════════════════ */
+    .histogram-card {
+      margin-bottom: 14px;
+    }
+    .histogram-body { padding: 16px 20px 20px; }
+
+    .histogram-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .hist-percentiles {
+      display: flex;
+      gap: 24px;
+      font: 700 12px 'JetBrains Mono';
+    }
+    .p-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .p-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .p-label { color: var(--muted); }
+    .p-val   { color: var(--terminal); }
+
+    .histogram-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 64px;
+    }
+
+    .hist-bar {
+      flex: 1;
+      border-radius: 3px 3px 0 0;
+      background: rgba(52,211,153,0.22);
+      border: 1px solid rgba(52,211,153,0.3);
+      border-bottom: none;
+      min-height: 5px;
+      transition: height 0.5s ease;
+    }
+    .hist-bar.p50-mark { background: rgba(52,211,153,0.6); border-color: rgba(52,211,153,0.7); }
+    .hist-bar.p95-mark { background: rgba(251,191,36,0.55); border-color: rgba(251,191,36,0.5); }
+    .hist-bar.p99-mark { background: rgba(248,113,113,0.55); border-color: rgba(248,113,113,0.5); }
+
+    .hist-x-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font: 500 9px 'JetBrains Mono';
+      color: rgba(82,168,124,0.4);
+    }
+
+    /* ════════════════════════════════════════
+       TERMINAL INPUT
+    ════════════════════════════════════════ */
+    .terminal-card { /* extends ctrl-card */ }
+
+    .terminal-chrome {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .term-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .term-chrome-label {
+      font: 600 11px 'JetBrains Mono';
+      color: var(--muted);
+      margin-left: 4px;
+      letter-spacing: 0.06em;
+    }
+    .term-session-badge {
+      margin-left: auto;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font: 700 9px 'JetBrains Mono';
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(5,150,105,0.08);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .term-session-badge.streaming {
+      background: rgba(52,211,153,0.12);
+      color: var(--terminal);
+      border-color: rgba(52,211,153,0.3);
+      animation: badge-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes badge-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    .term-input-area {
+      padding: 18px 20px 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-label {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text3);
-    }
-
-    .prompt-textarea {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: var(--green);
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.6;
-      resize: vertical;
-      min-height: 80px;
-      max-height: 160px;
-      caret-color: var(--green);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .prompt-textarea::placeholder { color: var(--text3); font-style: italic; }
-    .prompt-textarea:focus { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.02); }
-
-    .slider-row {
+    .term-prompt-row {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .slider-wrap { flex: 1; }
-    .slider-val {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--green);
-      min-width: 32px;
-      text-align: right;
+    .term-arrow {
+      font: 600 15px 'JetBrains Mono';
+      color: var(--terminal);
+      flex-shrink: 0;
     }
-    input[type="range"] {
+
+    .model-select {
+      background: rgba(5,150,105,0.08);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 12px;
+      font: 500 12px 'JetBrains Mono';
+      color: var(--terminal);
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+      transition: border-color 0.2s;
       -webkit-appearance: none;
       appearance: none;
-      width: 100%;
-      height: 4px;
-      background: var(--bg4);
-      border-radius: 2px;
+    }
+    .model-select:focus { border-color: rgba(52,211,153,0.4); }
+
+    .term-input {
+      flex: 1;
+      background: rgba(5,150,105,0.05);
+      border: 1px solid rgba(5,150,105,0.2);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: 400 13px 'JetBrains Mono';
+      color: var(--ink);
       outline: none;
-      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
     }
-    input[type="range"]::-webkit-slider-thumb {
+    .term-input::placeholder { color: rgba(82,168,124,0.35); font-style: italic; }
+    .term-input:focus {
+      border-color: rgba(52,211,153,0.35);
+      background: rgba(5,150,105,0.07);
+    }
+
+    .term-params {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-left: 24px;
+      flex-wrap: wrap;
+    }
+    .term-param-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .term-param-label {
+      font: 600 11px 'JetBrains Mono';
+      color: var(--muted);
+    }
+    .term-param-select {
+      background: rgba(5,150,105,0.07);
+      border: 1px solid rgba(5,150,105,0.18);
+      border-radius: 5px;
+      padding: 4px 10px;
+      font: 500 11px 'JetBrains Mono';
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
       -webkit-appearance: none;
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      background: var(--green);
-      cursor: pointer;
-      box-shadow: 0 0 6px rgba(0,255,136,0.4);
+      appearance: none;
+      transition: border-color 0.2s;
     }
-    input[type="range"]::-moz-range-thumb {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      background: var(--green);
-      cursor: pointer;
-      border: none;
-    }
+    .term-param-select:focus { border-color: rgba(52,211,153,0.35); }
 
     .priority-tabs {
       display: flex;
-      background: var(--bg3);
-      border-radius: 50rem;
-      padding: 3px;
+      background: rgba(5,150,105,0.06);
+      border-radius: 6px;
+      padding: 2px;
       gap: 2px;
       border: 1px solid var(--border);
     }
     .prio-tab {
-      flex: 1;
-      padding: 5px 8px;
-      border-radius: 50rem;
+      padding: 4px 10px;
+      border-radius: 4px;
       border: none;
       background: transparent;
-      color: var(--text3);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
+      color: var(--muted);
+      font: 600 10px 'JetBrains Mono';
       cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
     }
-    .prio-tab:hover:not(.active) { color: var(--text2); }
-    .prio-tab.active[data-p="low"]    { background: var(--bg4); color: var(--text2); }
-    .prio-tab.active[data-p="normal"] { background: var(--blue-dim); color: var(--blue); }
-    .prio-tab.active[data-p="high"]   { background: rgba(239,68,68,0.15); color: var(--red); }
+    .prio-tab.active[data-p="low"]    { background: rgba(255,255,255,0.06); color: var(--ink); }
+    .prio-tab.active[data-p="normal"] { background: rgba(52,211,153,0.15); color: var(--terminal); }
+    .prio-tab.active[data-p="high"]   { background: rgba(239,68,68,0.15); color: #f87171; }
 
-    .generate-btn {
-      width: 100%;
-      padding: 11px;
-      border-radius: 50rem;
+    .gen-btn {
+      margin-left: auto;
+      padding: 9px 26px;
+      border-radius: 8px;
       border: none;
       background: linear-gradient(135deg, #059669, #34d399);
-      color: #021a0e;
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 900;
+      color: #011a0e;
+      font: 800 13px 'Nunito';
       cursor: pointer;
-      letter-spacing: 0.04em;
-      box-shadow: 0 4px 20px rgba(5,150,105,0.4);
-      transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s cubic-bezier(0.16,1,0.3,1), background 0.15s;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 18px rgba(5,150,105,0.35);
+      transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s;
       position: relative;
       overflow: hidden;
     }
-    .generate-btn::after {
+    .gen-btn::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
     }
-    .generate-btn:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 32px rgba(52,211,153,0.5);
+    .gen-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(52,211,153,0.45);
     }
-    .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .term-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 20px;
+    }
 
     /* Terminal output */
-    .terminal-box {
-      background: #0a0a0a;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      min-height: 120px;
+    .terminal-output {
+      margin: 0 20px 20px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(5,150,105,0.04);
+      border: 1px solid rgba(5,150,105,0.13);
+      font: 400 12px 'JetBrains Mono';
+      color: var(--terminal);
+      min-height: 68px;
       max-height: 200px;
       overflow-y: auto;
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.7;
-      color: var(--green);
-      position: relative;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    .terminal-empty {
-      color: var(--text3);
+    .terminal-output-header {
+      font: 500 10px 'JetBrains Mono';
+      color: rgba(82,168,124,0.38);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .terminal-empty-msg {
+      color: rgba(82,168,124,0.35);
       font-style: italic;
     }
     .terminal-prompt-line {
-      color: var(--text3);
+      color: rgba(82,168,124,0.5);
+      margin-bottom: 4px;
+      font-size: 11px;
+    }
+    .terminal-prompt-line::before { content: '// prompt: '; }
+    .terminal-ttft-line {
+      font-size: 10px;
+      color: rgba(59,130,246,0.8);
       margin-bottom: 4px;
     }
-    .terminal-prompt-line::before { content: '> '; color: rgba(255,255,255,0.15); }
     .terminal-response { white-space: pre-wrap; word-break: break-word; }
-    .terminal-response.done { color: rgba(0,255,136,0.7); }
+    .terminal-response.done { color: rgba(52,211,153,0.75); }
     .terminal-stats {
-      margin-top: 6px;
+      margin-top: 8px;
       font-size: 10px;
-      color: var(--text3);
-      border-top: 1px solid rgba(255,255,255,0.05);
+      color: rgba(82,168,124,0.45);
+      border-top: 1px solid rgba(5,150,105,0.12);
       padding-top: 6px;
-    }
-    .terminal-ttft {
-      font-size: 10px;
-      color: var(--blue);
-      margin-bottom: 2px;
     }
 
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
     .cursor {
       display: inline-block;
       width: 7px; height: 13px;
-      background: var(--green);
+      background: var(--terminal);
       animation: blink 1s step-end infinite;
       vertical-align: text-bottom;
       margin-left: 1px;
       border-radius: 1px;
     }
 
-    /* ── CENTER: KV Cache Grid ── */
-    .cache-panel {
-      background: #1e1b1b;
-      align-items: center;
-    }
-    .cache-panel .panel-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      gap: 20px;
-    }
-    .kv-grid-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-    .kv-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 20px);
-      gap: 4px;
-    }
-    .kv-block {
-      width: 20px; height: 20px;
-      border-radius: 4px;
-      background: var(--bg4);
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .kv-block.occupied {
-      background: var(--blue);
-      box-shadow: 0 0 6px rgba(59,130,246,0.4);
-    }
-    .kv-block.evicting {
-      background: var(--yellow);
-      box-shadow: 0 0 6px rgba(245,158,11,0.5);
-      animation: pulse-block 0.8s ease-in-out infinite alternate;
-    }
-    .kv-block.active {
-      background: var(--green);
-      box-shadow: 0 0 8px rgba(0,255,136,0.5);
-      animation: pulse-block 1s ease-in-out infinite alternate;
-    }
-    @keyframes pulse-block { from{opacity:0.7} to{opacity:1} }
-    .kv-label {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text2);
-      text-align: center;
-    }
-    .kv-legend {
-      display: flex;
-      gap: 16px;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--text3);
-    }
-    .kv-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .kv-legend-dot {
-      width: 8px; height: 8px;
-      border-radius: 2px;
-    }
-
-    /* Stats below grid */
-    .cache-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      width: 100%;
-      max-width: 340px;
-    }
-    .cache-stat {
-      background: #1e1b1b;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
-    }
-    .cache-stat-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text3);
-      margin-bottom: 4px;
-    }
-    .cache-stat-value {
-      font-family: var(--mono);
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    /* ── RIGHT: Stress Test ── */
-    .stress-panel {
-      background: #1e1b1b;
-    }
-    .stress-panel .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .stress-btn {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(239,68,68,0.4);
-      background: rgba(239,68,68,0.1);
-      color: var(--red);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      transition: all 0.15s;
-    }
-    .stress-btn:hover:not(:disabled) {
-      background: rgba(239,68,68,0.2);
-      box-shadow: 0 0 16px rgba(239,68,68,0.2);
-    }
-    .stress-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .stress-table-wrap { overflow-x: auto; }
-    .stress-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: var(--mono);
-      font-size: 11px;
-    }
-    .stress-table th {
-      text-align: left;
-      padding: 6px 8px;
-      color: var(--text3);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      border-bottom: 1px solid var(--border);
-      font-weight: 600;
-    }
-    .stress-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      vertical-align: middle;
-    }
-    .stress-row { transition: background-color 0.4s ease; }
-    .stress-row.pending td { color: var(--text3); }
-    .stress-row.streaming td { color: var(--blue); }
-    .stress-row.streaming td:first-child { animation: blink-row 1s ease-in-out infinite; }
-    @keyframes blink-row { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .stress-row.done td { color: var(--green); }
-    .stress-row.error td { color: var(--red); }
-
-    .stress-summary {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text2);
-      line-height: 1.8;
-    }
-    .stress-summary-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text3);
-      margin-bottom: 8px;
-    }
-    .stress-metric { display: flex; justify-content: space-between; }
-    .stress-metric-val { color: var(--green); font-weight: 600; }
-
-    /* ── Bottom chart ── */
-    .chart-section {
-      border-top: 1px solid var(--border);
-      background: #1e1b1b;
-      padding: 16px 24px 20px;
-      flex-shrink: 0;
-    }
-    .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .chart-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text3);
-    }
-    .chart-live {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--green);
-    }
-    .chart-live-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse-dot 1.5s ease-in-out infinite;
-    }
-    #throughput-svg {
-      width: 100%;
-      height: 80px;
-      display: block;
-    }
-
-    /* Responsive tweaks */
-    @media (max-width: 1100px) {
-      .main-grid { grid-template-columns: 1fr 1fr; }
-      .cache-panel { display: none; }
-    }
-    @media (max-width: 800px) {
-      .metrics-row { grid-template-columns: repeat(3, 1fr); }
+    /* ════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .metrics-strip { grid-template-columns: repeat(3, 1fr); }
       .main-grid { grid-template-columns: 1fr; }
-      .stress-panel { display: none; }
     }
-
-    /* ── Scroll reveal ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
-    }
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
+    @media (max-width: 640px) {
+      .sys-header { padding: 12px 16px; }
+      .page-shell { padding: 0 14px 32px; }
+      .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+      .term-params { padding-left: 0; }
     }
   </style>
 </head>
 <body>
-<div class="layout">
 
-  <!-- ══ HEADER ══ -->
-  <header class="header">
-    <div class="header-brand">
-      <div class="header-logo">⚡</div>
-      <div>
-        <div class="header-title">LLM Inference Engine</div>
-        <div class="header-sub">PagedAttention · Continuous Batching · Real-time streaming</div>
-      </div>
-    </div>
-    <div class="header-right">
-      <div class="ws-status" id="ws-status">
-        <span class="ws-dot"></span>
-        <span id="ws-status-text">Connecting</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- ══ RAINBOW STRIPE ══ -->
-  <div style="position:relative;height:110px;overflow:hidden;pointer-events:none;" aria-hidden="true">
-    <svg viewBox="0 0 1440 110" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="position:absolute;bottom:0;left:0;width:100%;height:auto;">
-      <path d="M-100,70 C200,10 500,100 800,50 C1100,0 1300,80 1540,40" fill="none" stroke="#064e3b" stroke-width="18" stroke-linecap="round" opacity="0.65"/>
-      <path d="M-100,82 C200,22 500,112 800,62 C1100,12 1300,92 1540,52" fill="none" stroke="#059669" stroke-width="15" stroke-linecap="round" opacity="0.6"/>
-      <path d="M-100,94 C200,34 500,124 800,74 C1100,24 1300,104 1540,64" fill="none" stroke="#10b981" stroke-width="13" stroke-linecap="round" opacity="0.55"/>
-      <path d="M-100,106 C200,46 500,136 800,86 C1100,36 1300,116 1540,76" fill="none" stroke="#34d399" stroke-width="11" stroke-linecap="round" opacity="0.5"/>
-      <path d="M-100,118 C200,58 500,148 800,98 C1100,48 1300,128 1540,88" fill="none" stroke="#6ee7b7" stroke-width="9" stroke-linecap="round" opacity="0.45"/>
-    </svg>
+<!-- ════════════════════════════════════════
+     SYSTEM HEADER
+════════════════════════════════════════ -->
+<header class="sys-header">
+  <div class="sys-logo-mark">◈</div>
+  <div>
+    <div class="sys-logo">LLM Inference Engine</div>
+    <div class="sys-sub">PagedAttention · Continuous Batching · p50/p95/p99 TTFT</div>
   </div>
-
-  <!-- ══ HERO ══ -->
-  <div style="max-width:1400px;margin:0 auto;padding:40px 24px 16px;">
-    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#34d399;margin-bottom:10px;">LLM Inference Engine</div>
-    <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#f0ece8;line-height:1.15;letter-spacing:-0.03em;margin-bottom:12px;">PagedAttention KV-cache.<br>Continuous batching. Real-time metrics.</h1>
-    <p style="font-size:15px;color:#a09890;max-width:540px;font-weight:500;">High-throughput serving engine with p50/p95/p99 TTFT tracking and a live WebSocket dashboard — no GPU required.</p>
+  <div class="sys-status">
+    <span class="status-led" id="status-led"></span>
+    <span class="sys-status-text" id="sys-status-text">ONLINE</span>
+    <span class="ws-badge" id="ws-badge">WS: —</span>
   </div>
+</header>
 
-  <!-- ══ EXPLAINER BANNER ══ -->
-  <div class="reveal" style="max-width:1400px; margin: 0 auto 0; padding: 12px 24px;">
-    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 20px; display:flex; gap:32px; flex-wrap:wrap;">
-      <div style="flex:1; min-width:200px;">
-        <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:#00ff88; text-transform:uppercase; margin-bottom:4px;">⚡ Generation Terminal</div>
-        <div style="font-size:12px; color:#64748b; line-height:1.5;">Type any prompt and hit Generate. Tokens stream back word-by-word over WebSocket — exactly how ChatGPT works under the hood. Adjust max tokens and temperature to control output length and creativity.</div>
+<!-- ════════════════════════════════════════
+     PAGE SHELL
+════════════════════════════════════════ -->
+<div class="page-shell">
+
+  <!-- ══ LED METRICS STRIP ══ -->
+  <div class="metrics-strip">
+
+    <!-- TTFT -->
+    <div class="led-display">
+      <div class="led-label">TTFT p50</div>
+      <div class="led-value" id="m-ttft">—<span class="led-unit">ms</span></div>
+      <div class="led-mini-chart" id="chart-ttft">
+        <div class="led-bar" style="height:30%"></div>
+        <div class="led-bar" style="height:50%"></div>
+        <div class="led-bar peak" style="height:80%"></div>
+        <div class="led-bar" style="height:60%"></div>
+        <div class="led-bar" style="height:40%"></div>
+        <div class="led-bar" style="height:55%"></div>
+        <div class="led-bar" style="height:70%"></div>
       </div>
-      <div style="flex:1; min-width:200px;">
-        <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:#3b82f6; text-transform:uppercase; margin-bottom:4px;">🧠 KV Cache Memory</div>
-        <div style="font-size:12px; color:#64748b; line-height:1.5;">Each block = a 16-token memory page. As the model generates text, pages fill up (blue = in use). When done, they free up (gray). This is how real LLM servers like vLLM manage GPU memory without wasting it.</div>
+      <div class="led-sublabel">time-to-first-token</div>
+    </div>
+
+    <!-- THROUGHPUT -->
+    <div class="led-display">
+      <div class="led-label">Throughput</div>
+      <div class="led-value" id="m-throughput">—<span class="led-unit">tok/s</span></div>
+      <div class="led-mini-chart" id="chart-tps">
+        <div class="led-bar" style="height:20%"></div>
+        <div class="led-bar" style="height:40%"></div>
+        <div class="led-bar" style="height:60%"></div>
+        <div class="led-bar peak" style="height:90%"></div>
+        <div class="led-bar" style="height:70%"></div>
+        <div class="led-bar" style="height:80%"></div>
+        <div class="led-bar hi" style="height:100%"></div>
       </div>
-      <div style="flex:1; min-width:200px;">
-        <div style="font-size:11px; font-weight:700; letter-spacing:.1em; color:rgba(16,185,129,1); text-transform:uppercase; margin-bottom:4px;">🔥 Stress Test</div>
-        <div style="font-size:12px; color:#64748b; line-height:1.5;">Fires 10 requests simultaneously to test how the scheduler handles concurrency. Watch the queue fill, requests get batched, and metrics like TTFT and throughput respond in real time.</div>
+      <div class="led-sublabel">tokens per second</div>
+    </div>
+
+    <!-- ACTIVE BATCHES -->
+    <div class="led-display">
+      <div class="led-label">Active Batches</div>
+      <div class="led-value" id="m-sessions">—</div>
+      <div class="led-mini-chart" id="chart-batches">
+        <div class="led-bar" style="height:40%"></div>
+        <div class="led-bar peak" style="height:70%"></div>
+        <div class="led-bar" style="height:20%"></div>
+        <div class="led-bar" style="height:50%"></div>
+        <div class="led-bar peak" style="height:80%"></div>
+        <div class="led-bar" style="height:60%"></div>
+        <div class="led-bar" style="height:45%"></div>
       </div>
+      <div class="led-sublabel">concurrent sessions</div>
     </div>
-  </div>
 
-  <!-- ══ WAVE DIVIDER ══ -->
-  <div style="line-height:0;">
-    <svg viewBox="0 0 1440 30" preserveAspectRatio="none" style="display:block;width:100%;height:30px;opacity:0.15;">
-      <path d="M0,15 C480,30 960,0 1440,15 L1440,30 L0,30 Z" fill="#00ff88"/>
-    </svg>
-  </div>
+    <!-- P95 TTFT -->
+    <div class="led-display">
+      <div class="led-label">TTFT p95</div>
+      <div class="led-value" id="m-p95">—<span class="led-unit">ms</span></div>
+      <div class="led-mini-chart" id="chart-p95">
+        <div class="led-bar" style="height:35%"></div>
+        <div class="led-bar" style="height:55%"></div>
+        <div class="led-bar" style="height:75%"></div>
+        <div class="led-bar peak" style="height:90%"></div>
+        <div class="led-bar" style="height:65%"></div>
+        <div class="led-bar" style="height:50%"></div>
+        <div class="led-bar" style="height:70%"></div>
+      </div>
+      <div class="led-sublabel">95th percentile</div>
+    </div>
 
-  <!-- ══ TOP METRICS ROW ══ -->
-  <div class="metrics-row">
-    <div class="metric-card reveal" id="mc-throughput" style="transition-delay:0ms">
-      <div class="metric-label">Throughput</div>
-      <div class="metric-value" id="m-throughput">0<span class="unit">tok/s</span></div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-throughput" style="width:0%"></div></div>
+    <!-- GPU UTIL -->
+    <div class="led-display">
+      <div class="led-label">GPU Util</div>
+      <div class="led-value" id="m-gpu">—<span class="led-unit">%</span></div>
+      <div class="gpu-bar-wrap">
+        <div class="gpu-bar-fill" id="gpu-bar-fill" style="width:0%"></div>
+      </div>
+      <div class="led-sublabel" id="gpu-sublabel">batch efficiency: —</div>
     </div>
-    <div class="metric-card blue reveal" id="mc-ttft" style="transition-delay:60ms">
-      <div class="metric-label">Avg TTFT</div>
-      <div class="metric-value" id="m-ttft">—<span class="unit">ms</span></div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-ttft" style="width:0%"></div></div>
-    </div>
-    <div class="metric-card reveal" id="mc-sessions" style="transition-delay:120ms">
-      <div class="metric-label">Active Sessions</div>
-      <div class="metric-value" id="m-sessions">0</div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-sessions" style="width:0%"></div></div>
-    </div>
-    <div class="metric-card yellow reveal" id="mc-queue" style="transition-delay:180ms">
-      <div class="metric-label">Queue Depth</div>
-      <div class="metric-value" id="m-queue">0</div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-queue" style="width:0%;background:var(--yellow)"></div></div>
-    </div>
-    <div class="metric-card blue reveal" id="mc-gpu" style="transition-delay:240ms">
-      <div class="metric-label">GPU Utilization</div>
-      <div class="metric-value" id="m-gpu">0<span class="unit">%</span></div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-gpu" style="width:0%"></div></div>
-    </div>
-    <div class="metric-card reveal" id="mc-efficiency" style="transition-delay:300ms">
-      <div class="metric-label">Batch Efficiency</div>
-      <div class="metric-value" id="m-efficiency">0<span class="unit">%</span></div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-efficiency" style="width:0%"></div></div>
-    </div>
-  </div>
 
-  <!-- ══ MAIN GRID ══ -->
+  </div><!-- /metrics-strip -->
+
+  <!-- ══ MAIN GRID: KV CACHE + BATCH QUEUE ══ -->
   <div class="main-grid">
 
-    <!-- LEFT: Generation Terminal -->
-    <div class="panel gen-panel reveal">
-      <div class="panel-header">
-        <span class="panel-title">Generation Terminal</span>
-        <span class="panel-badge" id="gen-session-badge">idle</span>
+    <!-- KV CACHE HERO -->
+    <div class="ctrl-card">
+      <div class="ctrl-card-header">
+        <span class="ctrl-card-title">KV Cache — PagedAttention Memory Map</span>
+        <span class="ctrl-card-meta" id="kv-badge">0 / 256 pages</span>
       </div>
-      <div class="panel-content">
-        <div class="form-group">
-          <div class="form-label">Prompt</div>
-          <textarea id="prompt-input" class="prompt-textarea" placeholder="What would you like the model to generate?" rows="4" spellcheck="false" autocomplete="off"></textarea>
-        </div>
-
-        <div class="form-group">
-          <div class="form-label">Max Tokens — <span id="max-tokens-val" style="color:var(--green)">200</span></div>
-          <div class="slider-row">
-            <div class="slider-wrap">
-              <input type="range" id="max-tokens-slider" min="50" max="500" value="200" />
-            </div>
+      <div class="kv-body">
+        <div class="kv-legend">
+          <div class="kv-legend-item">
+            <div class="kv-legend-dot" style="background:rgba(5,150,105,0.1);border:1px solid rgba(5,150,105,0.2)"></div>
+            Free
+          </div>
+          <div class="kv-legend-item">
+            <div class="kv-legend-dot" style="background:rgba(52,211,153,0.35);border:1px solid rgba(52,211,153,0.5)"></div>
+            Used
+          </div>
+          <div class="kv-legend-item">
+            <div class="kv-legend-dot" style="background:#34d399;box-shadow:0 0 6px rgba(52,211,153,0.5)"></div>
+            Active (hot)
+          </div>
+          <div class="kv-legend-item">
+            <div class="kv-legend-dot" style="background:rgba(251,191,36,0.4);border:1px solid rgba(251,191,36,0.5)"></div>
+            Evicting
           </div>
         </div>
 
-        <div class="form-group">
-          <div class="form-label">Temperature — <span id="temp-val" style="color:var(--green)">0.7</span></div>
-          <div class="slider-row">
-            <div class="slider-wrap">
-              <input type="range" id="temp-slider" min="1" max="20" value="7" />
-            </div>
-          </div>
-        </div>
+        <div class="kv-grid" id="kv-grid"></div>
 
-        <div class="form-group">
-          <div class="form-label">Priority</div>
+        <div class="kv-stats">
+          <span>Free: <strong id="cs-pages-free">—</strong></span>
+          <span>Used: <strong id="cs-pages-used">—</strong></span>
+          <span>VRAM: <strong id="cs-vram">—</strong></span>
+          <span>Served: <strong id="cs-reqs">—</strong></span>
+          <span>Queue: <strong id="m-queue">—</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BATCH QUEUE -->
+    <div class="ctrl-card">
+      <div class="ctrl-card-header">
+        <span class="ctrl-card-title">Continuous Batch Queue</span>
+        <span class="ctrl-card-meta" id="batch-count-meta">0 requests</span>
+      </div>
+      <div class="batch-body" id="batch-list">
+        <div class="batch-empty" id="batch-empty">No active requests — idle</div>
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <!-- ══ LATENCY HISTOGRAM ══ -->
+  <div class="ctrl-card histogram-card">
+    <div class="ctrl-card-header">
+      <span class="ctrl-card-title">Latency Histogram — TTFT Distribution</span>
+      <div class="hist-percentiles" id="hist-percentiles">
+        <div class="p-pill">
+          <div class="p-dot" style="background:rgba(52,211,153,0.7)"></div>
+          <span class="p-label">p50</span>
+          <span class="p-val" id="hp50">—</span>
+        </div>
+        <div class="p-pill">
+          <div class="p-dot" style="background:rgba(251,191,36,0.7)"></div>
+          <span class="p-label">p95</span>
+          <span class="p-val" id="hp95">—</span>
+        </div>
+        <div class="p-pill">
+          <div class="p-dot" style="background:rgba(248,113,113,0.7)"></div>
+          <span class="p-label">p99</span>
+          <span class="p-val" id="hp99">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="histogram-body">
+      <div class="histogram-bars" id="histogram-bars">
+        <!-- generated by JS -->
+      </div>
+      <div class="hist-x-labels">
+        <span>0ms</span>
+        <span>50ms</span>
+        <span>100ms</span>
+        <span>150ms</span>
+        <span>200ms</span>
+        <span>300ms</span>
+        <span>400ms</span>
+        <span>500ms+</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TERMINAL INPUT ══ -->
+  <div class="ctrl-card terminal-card">
+
+    <div class="terminal-chrome">
+      <div class="term-dot" style="background:#ef4444"></div>
+      <div class="term-dot" style="background:#fbbf24"></div>
+      <div class="term-dot" style="background:#34d399"></div>
+      <span class="term-chrome-label">inference-engine — generate</span>
+      <span class="term-session-badge" id="term-session-badge">IDLE</span>
+    </div>
+
+    <div class="term-input-area">
+      <!-- Prompt row -->
+      <div class="term-prompt-row">
+        <span class="term-arrow">▶</span>
+        <select class="model-select" id="model-select">
+          <option value="llama2-7b">llama2-7b</option>
+          <option value="llama2-13b">llama2-13b</option>
+          <option value="mistral-7b">mistral-7b</option>
+          <option value="codellama-7b">codellama-7b</option>
+        </select>
+        <input
+          type="text"
+          class="term-input"
+          id="prompt-input"
+          placeholder="Enter prompt… (Enter to generate)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+
+      <!-- Params row -->
+      <div class="term-params">
+        <div class="term-param-group">
+          <span class="term-param-label">max_tokens</span>
+          <select class="term-param-select" id="max-tokens-select">
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="200" selected>200</option>
+            <option value="256">256</option>
+            <option value="512">512</option>
+          </select>
+        </div>
+        <div class="term-param-group">
+          <span class="term-param-label">temperature</span>
+          <select class="term-param-select" id="temp-select">
+            <option value="0.0">0.0</option>
+            <option value="0.3">0.3</option>
+            <option value="0.5">0.5</option>
+            <option value="0.7" selected>0.7</option>
+            <option value="1.0">1.0</option>
+            <option value="1.2">1.2</option>
+          </select>
+        </div>
+        <div class="term-param-group">
+          <span class="term-param-label">priority</span>
           <div class="priority-tabs">
             <button class="prio-tab" data-p="low">Low</button>
             <button class="prio-tab active" data-p="normal">Normal</button>
             <button class="prio-tab" data-p="high">High</button>
           </div>
         </div>
-
-        <button class="generate-btn" id="generate-btn">⚡ Generate</button>
-
-        <div class="form-group">
-          <div class="form-label">Output</div>
-          <div class="terminal-box" id="terminal-output">
-            <span class="terminal-empty">Tokens will stream here in real time...</span>
-          </div>
-        </div>
+        <button class="gen-btn" id="generate-btn">▶ Generate</button>
       </div>
     </div>
 
-    <!-- CENTER: KV Cache Grid -->
-    <div class="panel cache-panel reveal">
-      <div class="panel-header">
-        <span class="panel-title">KV Cache Memory</span>
-        <span class="panel-badge" id="kv-badge">0/64 pages</span>
-      </div>
-      <div class="panel-content">
-        <div class="kv-grid-wrap">
-          <div class="kv-grid" id="kv-grid"></div>
-          <div class="kv-label" id="kv-label">KV Cache: 0/64 pages</div>
-          <div class="kv-legend">
-            <div class="kv-legend-item">
-              <div class="kv-legend-dot" style="background:var(--bg4);border:1px solid var(--border)"></div>
-              Free
-            </div>
-            <div class="kv-legend-item">
-              <div class="kv-legend-dot" style="background:var(--blue)"></div>
-              Occupied
-            </div>
-            <div class="kv-legend-item">
-              <div class="kv-legend-dot" style="background:var(--green)"></div>
-              Active
-            </div>
-            <div class="kv-legend-item">
-              <div class="kv-legend-dot" style="background:var(--yellow)"></div>
-              Evicting
-            </div>
-          </div>
-        </div>
+    <div class="term-divider"></div>
 
-        <div class="cache-stats">
-          <div class="cache-stat">
-            <div class="cache-stat-label">Pages Free</div>
-            <div class="cache-stat-value" id="cs-pages-free">—</div>
-          </div>
-          <div class="cache-stat">
-            <div class="cache-stat-label">Pages Used</div>
-            <div class="cache-stat-value" id="cs-pages-used">—</div>
-          </div>
-          <div class="cache-stat">
-            <div class="cache-stat-label">VRAM Used</div>
-            <div class="cache-stat-value" id="cs-vram">—</div>
-          </div>
-          <div class="cache-stat">
-            <div class="cache-stat-label">Requests Served</div>
-            <div class="cache-stat-value" id="cs-reqs">—</div>
-          </div>
-        </div>
-      </div>
+    <!-- Output -->
+    <div class="terminal-output" id="terminal-output">
+      <span class="terminal-output-header">// output</span><span class="terminal-empty-msg">Tokens will stream here in real time…</span>
     </div>
 
-    <!-- RIGHT: Stress Test -->
-    <div class="panel stress-panel reveal">
-      <div class="panel-header">
-        <span class="panel-title">Stress Test</span>
-        <span class="panel-badge" id="stress-badge">ready</span>
-      </div>
-      <div class="panel-content">
-        <button class="stress-btn" id="stress-btn">⚡ Run Stress Test (10 concurrent)</button>
+  </div><!-- /terminal-card -->
 
-        <div class="stress-table-wrap">
-          <table class="stress-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Status</th>
-                <th>TTFT</th>
-                <th>Tokens</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody id="stress-tbody"></tbody>
-          </table>
-        </div>
-
-        <div class="stress-summary" id="stress-summary" style="display:none">
-          <div class="stress-summary-title">Summary</div>
-          <div class="stress-metric"><span>Avg TTFT</span><span class="stress-metric-val" id="ss-ttft">—</span></div>
-          <div class="stress-metric"><span>Avg Throughput</span><span class="stress-metric-val" id="ss-tps">—</span></div>
-          <div class="stress-metric"><span>P95 Time</span><span class="stress-metric-val" id="ss-p95">—</span></div>
-          <div class="stress-metric"><span>Completed</span><span class="stress-metric-val" id="ss-completed">—</span></div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /main-grid -->
-
-  <!-- ══ BOTTOM CHART ══ -->
-  <div class="chart-section reveal">
-    <div class="chart-header">
-      <span class="chart-title">Throughput History — 60s rolling window</span>
-      <div class="chart-live">
-        <div class="chart-live-dot"></div>
-        Live
-      </div>
-    </div>
-    <svg id="throughput-svg" viewBox="0 0 1200 80" preserveAspectRatio="none"></svg>
-  </div>
-
-</div><!-- /layout -->
+</div><!-- /page-shell -->
 
 <script>
 /* ================================================================
@@ -943,118 +1019,174 @@
    ================================================================ */
 const WS_URL   = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/generate`;
 const POLL_MS  = 2000;
-const KV_TOTAL = 64;
+const KV_TOTAL = 256;
+const HIST_BINS = 20;
 
 /* ================================================================
    STATE
    ================================================================ */
-let selectedPriority = "normal";
-let isGenerating     = false;
-let throughputHistory = [];
-let kvOccupied       = 0;
-let kvActive         = 0;
-let stressRunning    = false;
+let selectedPriority  = 'normal';
+let isGenerating      = false;
+let stressRunning     = false;
+let kvOccupied        = 0;
+let _kvAnimFrame      = null;
+let batchRequests     = [];   // { id, status, prompt, tokens, latency }
+let ttftHistory       = [];   // raw ms values for histogram
+let _histBinHeights   = new Array(HIST_BINS).fill(0);
 
 /* ================================================================
    UTILS
    ================================================================ */
-function fmt1(n)  { return (n == null || isNaN(n)) ? "—" : Number(n).toFixed(1); }
-function fmtInt(n){ return (n == null || isNaN(n)) ? "—" : Math.round(n).toLocaleString(); }
-function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fmt1(n)   { return (n == null || isNaN(n)) ? '—' : Number(n).toFixed(1); }
+function fmtInt(n) { return (n == null || isNaN(n)) ? '—' : Math.round(n).toLocaleString(); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ================================================================
-   ANIMATED COUNTER  (snap if delta is small, animate if large)
+   WS / SYSTEM STATUS
+   ================================================================ */
+function setWsStatus(state) {
+  const led    = document.getElementById('status-led');
+  const txt    = document.getElementById('sys-status-text');
+  const badge  = document.getElementById('ws-badge');
+
+  if (state === 'connected') {
+    led.classList.remove('offline');
+    txt.textContent = 'ONLINE';
+    badge.className = 'ws-badge connected';
+    badge.textContent = 'WS: LIVE';
+  } else if (state === 'error') {
+    led.classList.add('offline');
+    txt.textContent = 'OFFLINE';
+    badge.className = 'ws-badge error';
+    badge.textContent = 'WS: ERROR';
+  } else {
+    led.classList.remove('offline');
+    txt.textContent = 'CONNECTING';
+    badge.className = 'ws-badge';
+    badge.textContent = 'WS: …';
+  }
+}
+
+/* ================================================================
+   ANIMATED COUNTER
    ================================================================ */
 const _counterState = {};
-function animateCounter(id, targetVal, unit="", decimals=0) {
+function animateCounter(id, targetVal, decimals = 0) {
   const el = document.getElementById(id);
   if (!el) return;
   const key = id;
   const current = _counterState[key] || 0;
-  const delta = Math.abs(targetVal - current);
-  if (delta < 0.5) {
-    // No animation needed; just set
+  if (Math.abs(targetVal - current) < 0.5) {
     _counterState[key] = targetVal;
-    const unitEl = el.querySelector('.unit');
-    const unitHtml = unitEl ? unitEl.outerHTML : '';
-    el.innerHTML = (decimals > 0 ? targetVal.toFixed(decimals) : Math.round(targetVal).toLocaleString()) + unitHtml;
+    _setCounterText(el, targetVal, decimals);
     return;
   }
-  const steps = 12;
+  const steps = 14;
   const stepSize = (targetVal - current) / steps;
   let step = 0;
   const tick = () => {
     step++;
     const v = current + stepSize * step;
     _counterState[key] = v;
-    const unitEl = el.querySelector('.unit');
-    const unitHtml = unitEl ? unitEl.outerHTML : (unit ? `<span class="unit">${unit}</span>` : '');
-    el.innerHTML = (decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString()) + unitHtml;
+    _setCounterText(el, v, decimals);
     if (step < steps) requestAnimationFrame(tick);
-    else {
-      _counterState[key] = targetVal;
-      el.innerHTML = (decimals > 0 ? targetVal.toFixed(decimals) : Math.round(targetVal).toLocaleString()) + unitHtml;
-    }
+    else { _counterState[key] = targetVal; _setCounterText(el, targetVal, decimals); }
   };
   requestAnimationFrame(tick);
 }
 
-/* ================================================================
-   WS STATUS BADGE
-   ================================================================ */
-function setWsStatus(state) {
-  const el = document.getElementById('ws-status');
-  const txt = document.getElementById('ws-status-text');
-  el.className = 'ws-status ' + (state || '');
-  txt.textContent = state === 'connected' ? 'Live' : state === 'error' ? 'Error' : 'Offline';
+function _setCounterText(el, v, decimals) {
+  const unitEl   = el.querySelector('.led-unit');
+  const unitHtml = unitEl ? unitEl.outerHTML : '';
+  const formatted = decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString();
+  el.innerHTML = formatted + unitHtml;
 }
 
 /* ================================================================
    METRICS UPDATE
    ================================================================ */
 function updateMetrics(s) {
+  // TTFT p50
+  const ttft = s.ttft_p50_ms || 0;
+  animateCounter('m-ttft', ttft, 0);
+  updateMiniChart('chart-ttft', ttft, 500);
+
   // Throughput
   const tps = s.tokens_per_sec || 0;
-  animateCounter('m-throughput', tps, 'tok/s', 1);
-  document.getElementById('mb-throughput').style.width = Math.min(tps / 200 * 100, 100) + '%';
+  animateCounter('m-throughput', tps, 1);
+  updateMiniChart('chart-tps', tps, 300);
 
-  // TTFT
-  const ttft = s.ttft_p50_ms || 0;
-  animateCounter('m-ttft', ttft, 'ms', 0);
-  document.getElementById('mb-ttft').style.width = Math.min(ttft / 500 * 100, 100) + '%';
-
-  // Sessions
+  // Active sessions (= batches)
   const sessions = s.active_sessions || 0;
-  animateCounter('m-sessions', sessions, '', 0);
-  document.getElementById('mb-sessions').style.width = Math.min(sessions / 8 * 100, 100) + '%';
+  animateCounter('m-sessions', sessions, 0);
+  updateMiniChart('chart-batches', sessions, 10);
+
+  // P95
+  const p95 = s.ttft_p95_ms || 0;
+  animateCounter('m-p95', p95, 0);
+  updateMiniChart('chart-p95', p95, 600);
+
+  // GPU
+  const gpu = s.gpu_utilization || 0;
+  animateCounter('m-gpu', gpu, 0);
+  document.getElementById('gpu-bar-fill').style.width = Math.min(gpu, 100) + '%';
+  const eff = s.batch_efficiency || 0;
+  document.getElementById('gpu-sublabel').textContent = `batch efficiency: ${Math.round(eff)}%`;
 
   // Queue
   const queue = s.queue_depth || 0;
-  animateCounter('m-queue', queue, '', 0);
-  document.getElementById('mb-queue').style.width = Math.min(queue / 20 * 100, 100) + '%';
+  const qEl = document.getElementById('m-queue');
+  if (qEl) qEl.textContent = fmtInt(queue);
 
-  // GPU utilization
-  const gpu = s.gpu_utilization || 0;
-  animateCounter('m-gpu', gpu, '%', 0);
-  document.getElementById('mb-gpu').style.width = Math.min(gpu, 100) + '%';
-
-  // Batch efficiency
-  const eff = s.batch_efficiency || 0;
-  animateCounter('m-efficiency', eff, '%', 0);
-  document.getElementById('mb-efficiency').style.width = Math.min(eff, 100) + '%';
-
-  // KV cache stats
-  const pagesFree = s.pages_free || 0;
+  // KV stats
+  const pagesFree = s.pages_free      || 0;
   const pagesUsed = s.pages_allocated || 0;
   document.getElementById('cs-pages-free').textContent = fmtInt(pagesFree);
   document.getElementById('cs-pages-used').textContent = fmtInt(pagesUsed);
   const vramMB = s.vram_used_mb || 0;
-  document.getElementById('cs-vram').textContent = vramMB > 1000 ? (vramMB/1024).toFixed(1)+'GB' : Math.round(vramMB)+'MB';
+  document.getElementById('cs-vram').textContent = vramMB > 1000
+    ? (vramMB / 1024).toFixed(1) + 'GB'
+    : Math.round(vramMB) + 'MB';
   document.getElementById('cs-reqs').textContent = fmtInt(s.total_requests || 0);
 
-  // Update KV grid based on real engine stats
+  // Histogram percentile labels
+  const p99 = s.ttft_p99_ms || 0;
+  document.getElementById('hp50').textContent = ttft ? Math.round(ttft) + 'ms' : '—';
+  document.getElementById('hp95').textContent = p95  ? Math.round(p95)  + 'ms' : '—';
+  document.getElementById('hp99').textContent = p99  ? Math.round(p99)  + 'ms' : '—';
+
+  // Collect TTFT sample for histogram
+  if (ttft > 0) {
+    ttftHistory.push(ttft);
+    if (ttftHistory.length > 200) ttftHistory.shift();
+    updateHistogram(p95, p99);
+  }
+
+  // Update KV grid
   kvOccupied = sessions;
   updateKvGrid(pagesUsed, queue);
+}
+
+/* ================================================================
+   LED MINI-CHART UPDATER
+   ================================================================ */
+const _miniChartBuffers = {};
+function updateMiniChart(chartId, value, maxVal) {
+  if (!_miniChartBuffers[chartId]) _miniChartBuffers[chartId] = [];
+  const buf = _miniChartBuffers[chartId];
+  buf.push(value);
+  if (buf.length > 7) buf.shift();
+
+  const container = document.getElementById(chartId);
+  if (!container) return;
+  const bars = container.querySelectorAll('.led-bar');
+  const localMax = Math.max(...buf, 1);
+  bars.forEach((bar, i) => {
+    const v = buf[buf.length - bars.length + i] || 0;
+    const pct = Math.min((v / localMax) * 100, 100);
+    bar.style.height = Math.max(pct, 4) + '%';
+    bar.className = 'led-bar' + (pct > 80 ? ' hi' : pct > 55 ? ' peak' : '');
+  });
 }
 
 /* ================================================================
@@ -1064,65 +1196,54 @@ function buildKvGrid() {
   const grid = document.getElementById('kv-grid');
   grid.innerHTML = '';
   for (let i = 0; i < KV_TOTAL; i++) {
-    const block = document.createElement('div');
-    block.className = 'kv-block';
-    block.id = `kv-block-${i}`;
-    grid.appendChild(block);
+    const page = document.createElement('div');
+    page.className = 'kv-page';
+    page.id = `kv-page-${i}`;
+    grid.appendChild(page);
   }
 }
 
-let _kvAnimFrame = null;
 function updateKvGrid(pagesUsed, queueDepth) {
-  // Simulate a realistic page layout
-  // pagesUsed = occupied pages (blue)
-  // active generation = green pulse on some
-  // evicting = yellow for queued
-  const totalUsed = Math.min(pagesUsed, KV_TOTAL);
-  const activePages = Math.min(kvOccupied * 2, totalUsed);
-  const evictingPages = Math.min(queueDepth, KV_TOTAL - totalUsed);
+  const totalUsed    = Math.min(pagesUsed, KV_TOTAL);
+  const activePages  = Math.min(kvOccupied * 3, totalUsed);
+  const evictPages   = Math.min(queueDepth * 2, KV_TOTAL - totalUsed);
 
   for (let i = 0; i < KV_TOTAL; i++) {
-    const block = document.getElementById(`kv-block-${i}`);
-    if (!block) continue;
+    const page = document.getElementById(`kv-page-${i}`);
+    if (!page) continue;
     if (i < activePages) {
-      block.className = 'kv-block active';
+      page.className = 'kv-page hot';
     } else if (i < totalUsed) {
-      block.className = 'kv-block occupied';
-    } else if (i < totalUsed + evictingPages) {
-      block.className = 'kv-block evicting';
+      page.className = 'kv-page used';
+    } else if (i < totalUsed + evictPages) {
+      page.className = 'kv-page evicting';
     } else {
-      block.className = 'kv-block';
+      page.className = 'kv-page';
     }
   }
 
-  const label = `KV Cache: ${totalUsed}/${KV_TOTAL} pages`;
-  document.getElementById('kv-label').textContent = label;
-  document.getElementById('kv-badge').textContent = `${totalUsed}/${KV_TOTAL} pages`;
+  document.getElementById('kv-badge').textContent = `${totalUsed} / ${KV_TOTAL} pages`;
 }
 
-// Animate grid during active generation
 function animateKvGridActive(active) {
   if (active) {
-    let tick = 0;
     const doAnim = () => {
-      // Occasionally flicker a random occupied block to active
       if (isGenerating || stressRunning) {
-        const occupied = [];
+        const used = [];
         for (let i = 0; i < KV_TOTAL; i++) {
-          const b = document.getElementById(`kv-block-${i}`);
-          if (b && (b.className.includes('occupied') || b.className.includes('active'))) {
-            occupied.push(i);
+          const p = document.getElementById(`kv-page-${i}`);
+          if (p && (p.className.includes('used') || p.className.includes('hot'))) used.push(i);
+        }
+        if (used.length > 0) {
+          const r = used[Math.floor(Math.random() * used.length)];
+          const p = document.getElementById(`kv-page-${r}`);
+          if (p) {
+            const prev = p.className;
+            p.className = 'kv-page hot';
+            setTimeout(() => { if (p && !p.className.includes('hot') || prev !== 'kv-page hot') p.className = 'kv-page used'; }, 500);
           }
         }
-        if (occupied.length > 0) {
-          const r = occupied[Math.floor(Math.random() * occupied.length)];
-          const b = document.getElementById(`kv-block-${r}`);
-          if (b) {
-            b.className = 'kv-block active';
-            setTimeout(() => { if (b) b.className = 'kv-block occupied'; }, 600);
-          }
-        }
-        _kvAnimFrame = setTimeout(doAnim, 300 + Math.random() * 400);
+        _kvAnimFrame = setTimeout(doAnim, 200 + Math.random() * 350);
       }
     };
     if (_kvAnimFrame) clearTimeout(_kvAnimFrame);
@@ -1133,78 +1254,141 @@ function animateKvGridActive(active) {
 }
 
 /* ================================================================
-   THROUGHPUT SVG CHART
+   LATENCY HISTOGRAM
    ================================================================ */
-function drawChart(history) {
-  const svg = document.getElementById('throughput-svg');
-  if (!svg) return;
+const HIST_BUCKETS = [0, 25, 50, 75, 100, 125, 150, 175, 200, 225,
+                      250, 275, 300, 325, 350, 375, 400, 425, 475, 525];
 
-  const W = 1200, H = 80;
-  const padL = 0, padR = 0, padT = 8, padB = 4;
-
-  if (!history || history.length < 2) {
-    svg.innerHTML = `<text x="${W/2}" y="${H/2+4}" text-anchor="middle" fill="rgba(255,255,255,0.15)" font-family="JetBrains Mono" font-size="12">No data yet</text>`;
-    return;
+function buildHistogram() {
+  const container = document.getElementById('histogram-bars');
+  container.innerHTML = '';
+  for (let i = 0; i < HIST_BINS; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'hist-bar';
+    bar.id = `hist-bar-${i}`;
+    bar.style.height = '5px';
+    container.appendChild(bar);
   }
+}
 
-  const vals = history.map(d => d.tokens || 0);
-  const maxVal = Math.max(...vals, 1);
-  const n = vals.length;
-  const cw = W - padL - padR;
-  const ch = H - padT - padB;
+function updateHistogram(p95, p99) {
+  // Bin the ttftHistory values
+  const counts = new Array(HIST_BINS).fill(0);
+  ttftHistory.forEach(ms => {
+    let bin = HIST_BINS - 1;
+    for (let i = 0; i < HIST_BUCKETS.length - 1; i++) {
+      if (ms < HIST_BUCKETS[i + 1]) { bin = i; break; }
+    }
+    counts[bin]++;
+  });
 
-  const points = vals.map((v, i) => ({
-    x: padL + (i / (n - 1)) * cw,
-    y: padT + ch - (v / maxVal) * ch,
-  }));
+  const maxCount = Math.max(...counts, 1);
 
-  // Build smooth path
-  let pathD = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const px = points[i-1], cx_ = points[i];
-    const cpx = (px.x + cx_.x) / 2;
-    pathD += ` C ${cpx} ${px.y} ${cpx} ${cx_.y} ${cx_.x} ${cx_.y}`;
+  for (let i = 0; i < HIST_BINS; i++) {
+    const bar = document.getElementById(`hist-bar-${i}`);
+    if (!bar) continue;
+    const heightPct = Math.max((counts[i] / maxCount) * 100, 4);
+    bar.style.height = heightPct + '%';
+
+    const bucketMs = HIST_BUCKETS[i] || 0;
+    let cls = 'hist-bar';
+    if (p99 && bucketMs >= p99) cls += ' p99-mark';
+    else if (p95 && bucketMs >= p95) cls += ' p95-mark';
+    else if (counts[i] >= maxCount * 0.5) cls += ' p50-mark';
+    bar.className = cls;
   }
-
-  // Fill path
-  let fillD = `M ${points[0].x} ${H}`;
-  fillD += ` L ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    const px = points[i-1], cx_ = points[i];
-    const cpx = (px.x + cx_.x) / 2;
-    fillD += ` C ${cpx} ${px.y} ${cpx} ${cx_.y} ${cx_.x} ${cx_.y}`;
-  }
-  fillD += ` L ${points[points.length-1].x} ${H} Z`;
-
-  const lastVal = vals[vals.length-1];
-  const lastPt  = points[points.length-1];
-
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#00ff88" stop-opacity="0.25"/>
-        <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <path d="${fillD}" fill="url(#chart-grad)"/>
-    <path d="${pathD}" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${lastPt.x}" cy="${lastPt.y}" r="3" fill="#00ff88"/>
-    ${lastVal > 0 ? `<text x="${Math.min(lastPt.x + 6, W - 60)}" y="${Math.max(lastPt.y - 5, 14)}" fill="#00ff88" font-family="JetBrains Mono" font-size="10" font-weight="600">${lastVal} tok/s</text>` : ''}
-  `;
 }
 
 /* ================================================================
-   GENERATION TERMINAL
+   BATCH QUEUE DISPLAY
+   ================================================================ */
+function renderBatchList() {
+  const list  = document.getElementById('batch-list');
+  const empty = document.getElementById('batch-empty');
+  const meta  = document.getElementById('batch-count-meta');
+
+  const active = batchRequests.filter(r => r.status !== 'done' && r.status !== 'error');
+  meta.textContent = `${batchRequests.length} request${batchRequests.length !== 1 ? 's' : ''}`;
+
+  if (batchRequests.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.style.display = '';
+    return;
+  }
+  if (empty.style.display !== 'none') empty.style.display = 'none';
+
+  // Keep existing rows, update or add
+  batchRequests.forEach(req => {
+    let row = document.getElementById(`batch-row-${req.id}`);
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'batch-row';
+      row.id = `batch-row-${req.id}`;
+      list.appendChild(row);
+    }
+    const statusCls = {
+      running:  'status-running',
+      queued:   'status-queued',
+      done:     'status-done',
+      error:    'status-error',
+      connecting: 'status-queued',
+      streaming: 'status-running',
+    }[req.status] || 'status-queued';
+
+    row.innerHTML = `
+      <span class="batch-id">#${String(req.id).padStart(3,'0')}</span>
+      <span class="batch-status ${statusCls}">${req.status}</span>
+      <span class="batch-prompt">${escHtml((req.prompt||'').slice(0,40))}</span>
+      <span class="batch-tokens">${req.tokens != null ? req.tokens + 'T' : '—'}</span>
+      <span class="batch-latency">${req.latency != null ? Math.round(req.latency) + 'ms' : '—'}</span>
+    `;
+  });
+
+  // Remove stale rows
+  const activeIds = new Set(batchRequests.map(r => `batch-row-${r.id}`));
+  [...list.children].forEach(child => {
+    if (child.id && child.id.startsWith('batch-row-') && !activeIds.has(child.id)) {
+      list.removeChild(child);
+    }
+  });
+}
+
+let _batchIdCounter = 0;
+function addBatchRequest(prompt) {
+  _batchIdCounter++;
+  const req = { id: _batchIdCounter, status: 'queued', prompt, tokens: null, latency: null };
+  batchRequests.push(req);
+  renderBatchList();
+  return req;
+}
+function updateBatchRequest(req, patch) {
+  Object.assign(req, patch);
+  renderBatchList();
+}
+function removeBatchRequest(req, delayMs = 3000) {
+  setTimeout(() => {
+    const idx = batchRequests.indexOf(req);
+    if (idx !== -1) batchRequests.splice(idx, 1);
+    renderBatchList();
+  }, delayMs);
+}
+
+/* ================================================================
+   GENERATION TERMINAL UI
    ================================================================ */
 function clearTerminal() {
-  document.getElementById('terminal-output').innerHTML = '<span class="terminal-empty">Tokens will stream here in real time...</span>';
+  document.getElementById('terminal-output').innerHTML =
+    '<span class="terminal-output-header">// output</span>' +
+    '<span class="terminal-empty-msg">Tokens will stream here in real time…</span>';
 }
 
 function startTerminalSession(prompt) {
   const box = document.getElementById('terminal-output');
   box.innerHTML = `
+    <span class="terminal-output-header">// output</span>
     <div class="terminal-prompt-line">${escHtml(prompt.slice(0,80))}${prompt.length>80?'…':''}</div>
-    <div id="term-ttft" class="terminal-ttft"></div>
+    <div id="term-ttft" class="terminal-ttft-line"></div>
     <div class="terminal-response" id="term-response"><span class="cursor"></span></div>
     <div class="terminal-stats" id="term-stats" style="display:none"></div>
   `;
@@ -1222,7 +1406,7 @@ function appendTerminalToken(token) {
 
 function showTerminalTTFT(ms) {
   const el = document.getElementById('term-ttft');
-  if (el) el.textContent = `First token in ${Math.round(ms)}ms`;
+  if (el) el.textContent = `⚡ First token in ${Math.round(ms)}ms`;
 }
 
 function finalizeTerminal(tokenCount, elapsedMs) {
@@ -1234,9 +1418,9 @@ function finalizeTerminal(tokenCount, elapsedMs) {
   }
   const stats = document.getElementById('term-stats');
   if (stats) {
-    const tps = elapsedMs > 0 ? (tokenCount / (elapsedMs/1000)).toFixed(1) : '—';
+    const tps = elapsedMs > 0 ? (tokenCount / (elapsedMs / 1000)).toFixed(1) : '—';
     stats.style.display = '';
-    stats.textContent = `${tokenCount} tokens · ${Math.round(elapsedMs)}ms · ${tps} tok/s`;
+    stats.textContent = `${tokenCount} tokens · ${Math.round(elapsedMs)}ms total · ${tps} tok/s`;
   }
 }
 
@@ -1252,18 +1436,6 @@ document.querySelectorAll('.prio-tab').forEach(tab => {
 });
 
 /* ================================================================
-   SLIDERS
-   ================================================================ */
-const maxTokensSlider = document.getElementById('max-tokens-slider');
-const tempSlider = document.getElementById('temp-slider');
-maxTokensSlider.addEventListener('input', () => {
-  document.getElementById('max-tokens-val').textContent = maxTokensSlider.value;
-});
-tempSlider.addEventListener('input', () => {
-  document.getElementById('temp-val').textContent = (tempSlider.value / 10).toFixed(1);
-});
-
-/* ================================================================
    MAIN GENERATE
    ================================================================ */
 document.getElementById('generate-btn').addEventListener('click', doGenerate);
@@ -1273,48 +1445,70 @@ document.getElementById('prompt-input').addEventListener('keydown', e => {
 
 function doGenerate() {
   if (isGenerating) return;
-  const prompt = document.getElementById('prompt-input').value.trim();
+  const promptEl = document.getElementById('prompt-input');
+  const prompt = promptEl.value.trim();
   if (!prompt) return;
-  document.getElementById('prompt-input').value = '';
+  promptEl.value = '';
 
   isGenerating = true;
   document.getElementById('generate-btn').disabled = true;
-  document.getElementById('gen-session-badge').textContent = 'streaming';
+
+  const sessionBadge = document.getElementById('term-session-badge');
+  sessionBadge.textContent = 'STREAMING';
+  sessionBadge.className   = 'term-session-badge streaming';
+
   animateKvGridActive(true);
   startTerminalSession(prompt);
 
-  const maxTokens = parseInt(maxTokensSlider.value) || 200;
-  let tokenCount = 0;
-  let ttftShown  = false;
-  const start    = performance.now();
+  const batchReq = addBatchRequest(prompt);
+  updateBatchRequest(batchReq, { status: 'running' });
+
+  const maxTokens = parseInt(document.getElementById('max-tokens-select').value) || 200;
+  let tokenCount  = 0;
+  let ttftShown   = false;
+  const start     = performance.now();
 
   const ws = new WebSocket(WS_URL);
   ws.onopen = () => {
     setWsStatus('connected');
+    updateBatchRequest(batchReq, { status: 'streaming' });
     ws.send(JSON.stringify({ prompt, max_tokens: maxTokens, priority: selectedPriority }));
   };
   ws.onmessage = (evt) => {
     let msg; try { msg = JSON.parse(evt.data); } catch { return; }
     if (msg.error) {
       const resp = document.getElementById('term-response');
-      if (resp) resp.insertAdjacentHTML('beforeend', `<span style="color:var(--red)"> [error: ${escHtml(String(msg.error))}]</span>`);
+      if (resp) resp.insertAdjacentHTML('beforeend',
+        `<span style="color:#f87171"> [error: ${escHtml(String(msg.error))}]</span>`);
+      updateBatchRequest(batchReq, { status: 'error', latency: performance.now() - start });
+      removeBatchRequest(batchReq, 4000);
       finishGeneration(tokenCount, start);
       return;
     }
-    if (msg.is_final) { finishGeneration(tokenCount, start); return; }
+    if (msg.is_final) {
+      updateBatchRequest(batchReq, { status: 'done', tokens: tokenCount, latency: performance.now() - start });
+      removeBatchRequest(batchReq, 3000);
+      finishGeneration(tokenCount, start);
+      return;
+    }
     if (msg.token) {
-      appendTerminalToken(msg.token);
       tokenCount++;
+      appendTerminalToken(msg.token);
+      updateBatchRequest(batchReq, { tokens: tokenCount, latency: performance.now() - start });
       if (!ttftShown && msg.ttft_ms != null) {
         showTerminalTTFT(msg.ttft_ms);
         ttftShown = true;
+        ttftHistory.push(msg.ttft_ms);
       }
     }
   };
   ws.onerror = () => {
     setWsStatus('error');
     const resp = document.getElementById('term-response');
-    if (resp) resp.insertAdjacentHTML('beforeend', `<span style="color:var(--red)"> [WebSocket error]</span>`);
+    if (resp) resp.insertAdjacentHTML('beforeend',
+      '<span style="color:#f87171"> [WebSocket error]</span>');
+    updateBatchRequest(batchReq, { status: 'error', latency: performance.now() - start });
+    removeBatchRequest(batchReq, 4000);
     finishGeneration(tokenCount, start);
   };
   ws.onclose = () => {
@@ -1328,12 +1522,17 @@ function finishGeneration(tokenCount, start) {
   const elapsed = performance.now() - (start || 0);
   finalizeTerminal(tokenCount, elapsed);
   document.getElementById('generate-btn').disabled = false;
-  document.getElementById('gen-session-badge').textContent = 'done';
+  const sessionBadge = document.getElementById('term-session-badge');
+  sessionBadge.textContent = 'DONE';
+  sessionBadge.className   = 'term-session-badge';
   animateKvGridActive(false);
+  setTimeout(() => {
+    sessionBadge.textContent = 'IDLE';
+  }, 2500);
 }
 
 /* ================================================================
-   STRESS TEST
+   STRESS TEST (preserved, runs silently updating batch queue)
    ================================================================ */
 const STRESS_PROMPTS = [
   "Explain the transformer architecture in detail",
@@ -1348,74 +1547,48 @@ const STRESS_PROMPTS = [
   "Describe how Flash Attention reduces memory usage",
 ];
 
-document.getElementById('stress-btn').addEventListener('click', runStressTest);
-
 async function runStressTest() {
   if (stressRunning) return;
   stressRunning = true;
-  document.getElementById('stress-btn').disabled = true;
-  document.getElementById('stress-badge').textContent = 'running';
-  document.getElementById('stress-summary').style.display = 'none';
   animateKvGridActive(true);
 
-  const N = 10;
-  const tbody = document.getElementById('stress-tbody');
-  tbody.innerHTML = '';
-
-  const rows = [];
-  for (let i = 0; i < N; i++) {
-    const tr = document.createElement('tr');
-    tr.className = 'stress-row pending';
-    tr.innerHTML = `<td>${i+1}</td><td>pending</td><td>—</td><td>—</td><td>—</td>`;
-    tbody.appendChild(tr);
-    rows.push(tr);
-  }
-
-  const results = [];
-
-  const tasks = STRESS_PROMPTS.map((prompt, i) => {
+  const tasks = STRESS_PROMPTS.map((prompt) => {
     return new Promise((resolve) => {
-      const startT = performance.now();
+      const startT   = performance.now();
       let tokenCount = 0;
-      let ttft = null;
-      const ws = new WebSocket(WS_URL);
-      rows[i].className = 'stress-row streaming';
-      rows[i].cells[1].textContent = 'connecting';
+      let ttft       = null;
+      const batchReq = addBatchRequest(prompt);
+      updateBatchRequest(batchReq, { status: 'connecting' });
 
+      const ws = new WebSocket(WS_URL);
       ws.onopen = () => {
         ws.send(JSON.stringify({ prompt, max_tokens: 80, priority: 'normal' }));
-        rows[i].cells[1].textContent = 'streaming';
+        updateBatchRequest(batchReq, { status: 'streaming' });
       };
       ws.onmessage = (evt) => {
         let msg; try { msg = JSON.parse(evt.data); } catch { return; }
         if (msg.is_final || msg.error) {
           const elapsed = performance.now() - startT;
-          rows[i].className = msg.error ? 'stress-row error' : 'stress-row done';
-          rows[i].cells[1].textContent = msg.error ? 'error' : 'done';
-          rows[i].cells[2].textContent = ttft != null ? Math.round(ttft)+'ms' : '—';
-          rows[i].cells[3].textContent = tokenCount;
-          rows[i].cells[4].textContent = Math.round(elapsed)+'ms';
-          results.push({ ttft, tokenCount, elapsed, error: !!msg.error });
+          const st = msg.error ? 'error' : 'done';
+          updateBatchRequest(batchReq, { status: st, tokens: tokenCount, latency: elapsed });
+          removeBatchRequest(batchReq, 3500);
           resolve();
           return;
         }
         if (msg.token) {
           tokenCount++;
+          updateBatchRequest(batchReq, { tokens: tokenCount, latency: performance.now() - startT });
           if (ttft == null && msg.ttft_ms != null) {
             ttft = msg.ttft_ms;
-            rows[i].cells[2].textContent = Math.round(ttft)+'ms';
+            ttftHistory.push(ttft);
           }
-          rows[i].cells[3].textContent = tokenCount;
-          rows[i].cells[4].textContent = Math.round(performance.now()-startT)+'ms';
         }
       };
       ws.onerror = ws.onclose = () => {
-        if (rows[i].className === 'stress-row streaming' || rows[i].className === 'stress-row pending') {
-          const elapsed = performance.now() - startT;
-          rows[i].className = 'stress-row error';
-          rows[i].cells[1].textContent = 'error';
-          rows[i].cells[4].textContent = Math.round(elapsed)+'ms';
-          results.push({ ttft: null, tokenCount, elapsed, error: true });
+        const elapsed = performance.now() - startT;
+        if (batchReq.status === 'streaming' || batchReq.status === 'connecting') {
+          updateBatchRequest(batchReq, { status: 'error', latency: elapsed });
+          removeBatchRequest(batchReq, 3500);
           resolve();
         }
       };
@@ -1423,29 +1596,8 @@ async function runStressTest() {
   });
 
   await Promise.all(tasks);
-
   stressRunning = false;
   if (!isGenerating) animateKvGridActive(false);
-  document.getElementById('stress-btn').disabled = false;
-  document.getElementById('stress-badge').textContent = 'done';
-
-  // Compute summary
-  const ok = results.filter(r => !r.error);
-  if (ok.length > 0) {
-    const ttfts = ok.filter(r => r.ttft != null).map(r => r.ttft).sort((a,b)=>a-b);
-    const avgTtft = ttfts.length ? (ttfts.reduce((s,v)=>s+v,0)/ttfts.length).toFixed(0) : '—';
-    const tpsVals = ok.map(r => r.tokenCount / Math.max(r.elapsed/1000, 0.001));
-    const avgTps  = (tpsVals.reduce((s,v)=>s+v,0)/tpsVals.length).toFixed(1);
-    const elapseds = ok.map(r => r.elapsed).sort((a,b)=>a-b);
-    const p95idx   = Math.ceil(elapseds.length * 0.95) - 1;
-    const p95      = (elapseds[Math.max(p95idx,0)] / 1000).toFixed(2);
-
-    document.getElementById('ss-ttft').textContent      = avgTtft !== '—' ? avgTtft+'ms' : '—';
-    document.getElementById('ss-tps').textContent       = avgTps+' tok/s';
-    document.getElementById('ss-p95').textContent       = p95+'s';
-    document.getElementById('ss-completed').textContent = `${ok.length}/${N}`;
-    document.getElementById('stress-summary').style.display = '';
-  }
 }
 
 /* ================================================================
@@ -1454,38 +1606,21 @@ async function runStressTest() {
 async function pollMetrics() {
   try {
     const [sumRes, thrRes] = await Promise.allSettled([
-      fetch('/api/metrics/summary', { signal: AbortSignal.timeout(3000) }).then(r=>r.json()),
-      fetch('/api/throughput/history', { signal: AbortSignal.timeout(3000) }).then(r=>r.json()),
+      fetch('/api/metrics/summary', { signal: AbortSignal.timeout(3000) }).then(r => r.json()),
+      fetch('/api/throughput/history', { signal: AbortSignal.timeout(3000) }).then(r => r.json()),
     ]);
     if (sumRes.status === 'fulfilled') updateMetrics(sumRes.value);
-    if (thrRes.status === 'fulfilled' && thrRes.value.history) {
-      throughputHistory = thrRes.value.history;
-      drawChart(throughputHistory);
-    }
+    // throughput history no longer drives a separate chart but we keep the fetch
   } catch (_) {}
 }
-
-/* ================================================================
-   SCROLL REVEAL
-   ================================================================ */
-(function initReveal() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.05 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-})();
 
 /* ================================================================
    BOOT
    ================================================================ */
 (async () => {
-  // Build KV grid
   buildKvGrid();
+  buildHistogram();
+  renderBatchList();
 
   // Health check
   try {
@@ -1495,7 +1630,6 @@ async function pollMetrics() {
     setWsStatus('error');
   }
 
-  // Poll immediately then every 2s
   await pollMetrics();
   setInterval(pollMetrics, POLL_MS);
 })();
